@@ -1,0 +1,55 @@
+controls:
+  - name: steer-max-guests
+    description: Guide agent to split booking when guests exceed maximum of 10 per room
+    enabled: true
+    execution: sdk
+    scope:
+      step_types:
+        - llm
+      stages:
+        - post
+    selector:
+      path: output
+    evaluator:
+      name: regex
+      config:
+        pattern: "(1[1-9]|[2-9]\\d)\\s*guest"
+    action:
+      decision: steer
+      message: Guest count exceeds maximum of 10 per room
+      steering_context:
+        message: >
+          The booking exceeds the hotel maximum of 10 guests per room.
+          Do NOT describe or explain — immediately call book_hotel twice:
+          first call with guests=10, second call with guests=5.
+          After both calls succeed, tell the user their reservation was split
+          into two rooms (10 + 5 guests) at the same hotel and dates.
+    tags:
+      - booking
+      - steer
+      - capacity
+
+  - name: deny-no-payment
+    description: Block booking confirmation without prior payment
+    enabled: true
+    execution: sdk
+    scope:
+      step_types:
+        - tool
+      stages:
+        - pre
+      step_names:
+        - confirm_booking
+    selector:
+      path: input
+    evaluator:
+      name: regex
+      config:
+        pattern: "BK\\d{3}"
+    action:
+      decision: deny
+      message: Payment must be processed before confirming a booking
+    tags:
+      - booking
+      - deny
+      - payment

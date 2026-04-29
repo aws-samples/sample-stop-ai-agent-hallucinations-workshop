@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="50%" style="stop-color:#1e293b"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+    <!-- Accent gradient -->
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#fb923c"/>
+    </linearGradient>
+    <!-- Graph node gradient -->
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <!-- Green accent -->
+    <linearGradient id="greenAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#4ade80"/>
+    </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+
+  <!-- Subtle grid pattern -->
+  <g opacity="0.04" stroke="#94a3b8" stroke-width="0.5">
+    <line x1="0" y1="0" x2="1080" y2="1350"/>
+    <line x1="270" y1="0" x2="1080" y2="810"/>
+    <line x1="540" y1="0" x2="1080" y2="540"/>
+    <line x1="0" y1="270" x2="810" y2="1350"/>
+    <line x1="0" y1="540" x2="540" y2="1350"/>
+    <line x1="1080" y1="0" x2="0" y2="1350"/>
+    <line x1="810" y1="0" x2="0" y2="810"/>
+    <line x1="540" y1="0" x2="0" y2="540"/>
+    <line x1="1080" y1="270" x2="270" y2="1350"/>
+    <line x1="1080" y1="540" x2="540" y2="1350"/>
+  </g>
+
+  <!-- Decorative graph network (background) -->
+  <g opacity="0.12" filter="url(#softGlow)">
+    <!-- Edges -->
+    <line x1="120" y1="180" x2="280" y2="120" stroke="#22d3ee" stroke-width="1.5"/>
+    <line x1="280" y1="120" x2="380" y2="220" stroke="#22d3ee" stroke-width="1.5"/>
+    <line x1="380" y1="220" x2="300" y2="320" stroke="#22d3ee" stroke-width="1.5"/>
+    <line x1="120" y1="180" x2="300" y2="320" stroke="#22d3ee" stroke-width="1.5"/>
+    <line x1="700" y1="100" x2="850" y2="180" stroke="#f97316" stroke-width="1.5"/>
+    <line x1="850" y1="180" x2="950" y2="120" stroke="#f97316" stroke-width="1.5"/>
+    <line x1="850" y1="180" x2="800" y2="300" stroke="#f97316" stroke-width="1.5"/>
+    <line x1="700" y1="100" x2="800" y2="300" stroke="#f97316" stroke-width="1.5"/>
+    <!-- Nodes -->
+    <circle cx="120" cy="180" r="6" fill="#22d3ee"/>
+    <circle cx="280" cy="120" r="5" fill="#22d3ee"/>
+    <circle cx="380" cy="220" r="7" fill="#22d3ee"/>
+    <circle cx="300" cy="320" r="5" fill="#22d3ee"/>
+    <circle cx="700" cy="100" r="6" fill="#f97316"/>
+    <circle cx="850" cy="180" r="7" fill="#f97316"/>
+    <circle cx="950" cy="120" r="5" fill="#f97316"/>
+    <circle cx="800" cy="300" r="6" fill="#f97316"/>
+  </g>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="1080" height="5" fill="url(#accent)"/>
+
+  <!-- Conference badge -->
+  <rect x="60" y="50" width="960" height="70" rx="35" fill="none" stroke="#f97316" stroke-width="2" opacity="0.8"/>
+  <text x="540" y="95" text-anchor="middle" font-size="28" font-weight="700" fill="#f97316" letter-spacing="3">ORLANDO CODE CAMP 2026</text>
+
+  <!-- Date & Time -->
+  <rect x="310" y="145" width="460" height="50" rx="25" fill="#f97316" opacity="0.15"/>
+  <text x="540" y="178" text-anchor="middle" font-size="24" font-weight="600" fill="#fb923c">Saturday, April 11  ·  9:30 AM</text>
+
+  <!-- Main knowledge graph illustration -->
+  <g transform="translate(540, 400)" filter="url(#glow)">
+    <!-- Central hub -->
+    <circle cx="0" cy="0" r="40" fill="#0f172a" stroke="#22d3ee" stroke-width="3"/>
+    <text x="0" y="6" text-anchor="middle" font-size="16" font-weight="700" fill="#22d3ee">RAG</text>
+
+    <!-- Connected nodes -->
+    <!-- Top -->
+    <line x1="0" y1="-40" x2="-120" y2="-130" stroke="#22d3ee" stroke-width="2" opacity="0.6"/>
+    <circle cx="-120" cy="-130" r="25" fill="#0f172a" stroke="#22d3ee" stroke-width="2"/>
+    <text x="-120" y="-125" text-anchor="middle" font-size="11" font-weight="600" fill="#22d3ee">Hotels</text>
+
+    <line x1="0" y1="-40" x2="120" y2="-130" stroke="#22d3ee" stroke-width="2" opacity="0.6"/>
+    <circle cx="120" cy="-130" r="25" fill="#0f172a" stroke="#22d3ee" stroke-width="2"/>
+    <text x="120" y="-125" text-anchor="middle" font-size="11" font-weight="600" fill="#22d3ee">FAQs</text>
+
+    <!-- Right -->
+    <line x1="40" y1="0" x2="170" y2="-30" stroke="#4ade80" stroke-width="2" opacity="0.6"/>
+    <circle cx="170" cy="-30" r="25" fill="#0f172a" stroke="#4ade80" stroke-width="2"/>
+    <text x="170" y="-25" text-anchor="middle" font-size="10" font-weight="600" fill="#4ade80">Neo4j</text>
+
+    <line x1="40" y1="15" x2="170" y2="70" stroke="#4ade80" stroke-width="2" opacity="0.6"/>
+    <circle cx="170" cy="70" r="25" fill="#0f172a" stroke="#4ade80" stroke-width="2"/>
+    <text x="170" y="75" text-anchor="middle" font-size="10" font-weight="600" fill="#4ade80">Graph</text>
+
+    <!-- Left -->
+    <line x1="-40" y1="0" x2="-170" y2="-30" stroke="#f97316" stroke-width="2" opacity="0.6"/>
+    <circle cx="-170" cy="-30" r="25" fill="#0f172a" stroke="#f97316" stroke-width="2"/>
+    <text x="-170" y="-25" text-anchor="middle" font-size="10" font-weight="600" fill="#f97316">FAISS</text>
+
+    <line x1="-40" y1="15" x2="-170" y2="70" stroke="#f97316" stroke-width="2" opacity="0.6"/>
+    <circle cx="-170" cy="70" r="25" fill="#0f172a" stroke="#f97316" stroke-width="2"/>
+    <text x="-170" y="75" text-anchor="middle" font-size="10" font-weight="600" fill="#f97316">Vector</text>
+
+    <!-- Bottom -->
+    <line x1="0" y1="40" x2="0" y2="120" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
+    <circle cx="0" cy="120" r="25" fill="#0f172a" stroke="#a78bfa" stroke-width="2"/>
+    <text x="0" y="125" text-anchor="middle" font-size="10" font-weight="600" fill="#a78bfa">Agent</text>
+
+    <!-- Cross connections -->
+    <line x1="-120" y1="-105" x2="120" y2="-105" stroke="#22d3ee" stroke-width="1" opacity="0.3" stroke-dasharray="4,4"/>
+    <line x1="-170" y1="-5" x2="-170" y2="45" stroke="#f97316" stroke-width="1" opacity="0.3" stroke-dasharray="4,4"/>
+    <line x1="170" y1="-5" x2="170" y2="45" stroke="#4ade80" stroke-width="1" opacity="0.3" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- VS badge -->
+  <rect x="495" y="520" width="90" height="40" rx="20" fill="#f97316"/>
+  <text x="540" y="546" text-anchor="middle" font-size="20" font-weight="800" fill="#0f172a">VS</text>
+
+  <!-- Title section -->
+  <text x="540" y="630" text-anchor="middle" font-size="20" font-weight="600" fill="#94a3b8" letter-spacing="4">STOP AI AGENTS FROM</text>
+  <text x="540" y="680" text-anchor="middle" font-size="44" font-weight="800" fill="#ffffff" letter-spacing="1">Making Up Facts</text>
+  <!-- Underline accent -->
+  <rect x="280" y="695" width="520" height="4" rx="2" fill="url(#accent)"/>
+  <text x="540" y="745" text-anchor="middle" font-size="30" font-weight="700" fill="#22d3ee">Graph-RAG for Reliable</text>
+  <text x="540" y="785" text-anchor="middle" font-size="30" font-weight="700" fill="#22d3ee">Data Retrieval</text>
+
+  <!-- Divider -->
+  <line x1="200" y1="820" x2="880" y2="820" stroke="#334155" stroke-width="1"/>
+
+  <!-- Key highlights -->
+  <g font-size="22" fill="#e2e8f0">
+    <!-- Highlight 1 -->
+    <rect x="80" y="850" width="920" height="56" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="110" y="885" font-size="24" fill="#f97316">&#9889;</text>
+    <text x="145" y="885" font-weight="600" fill="#e2e8f0">Hands-on:</text>
+    <text x="305" y="885" fill="#94a3b8">Build a travel booking agent live</text>
+
+    <!-- Highlight 2 -->
+    <rect x="80" y="920" width="920" height="56" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="110" y="955" font-size="24" fill="#22d3ee">&#128202;</text>
+    <text x="145" y="955" font-weight="600" fill="#e2e8f0">Compare:</text>
+    <text x="305" y="955" fill="#94a3b8">FAISS vector search vs Neo4j Graph-RAG</text>
+
+    <!-- Highlight 3 -->
+    <rect x="80" y="990" width="920" height="56" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="110" y="1025" font-size="24" fill="#4ade80">&#9989;</text>
+    <text x="145" y="1025" font-weight="600" fill="#e2e8f0">Result:</text>
+    <text x="270" y="1025" fill="#94a3b8">Better accuracy on 300 hotel FAQ documents</text>
+
+    <!-- Highlight 4 -->
+    <rect x="80" y="1060" width="920" height="56" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="110" y="1095" font-size="24" fill="#a78bfa">&#128640;</text>
+    <text x="145" y="1095" font-weight="600" fill="#e2e8f0">Takeaway:</text>
+    <text x="330" y="1095" fill="#94a3b8">Working pattern for any domain</text>
+  </g>
+
+  <!-- No experience needed badge -->
+  <rect x="240" y="1150" width="600" height="44" rx="22" fill="#22c55e" opacity="0.15" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="540" y="1179" text-anchor="middle" font-size="19" font-weight="600" fill="#4ade80">No prior graph database experience needed</text>
+
+  <!-- Bottom conference info -->
+  <line x1="200" y1="1225" x2="880" y2="1225" stroke="#334155" stroke-width="1"/>
+  <text x="540" y="1265" text-anchor="middle" font-size="20" fill="#64748b">orlandocodecamp.com</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="1345" width="1080" height="5" fill="url(#accent)"/>
+</svg>
