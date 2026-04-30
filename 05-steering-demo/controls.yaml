@@ -20,10 +20,11 @@ controls:
       steering_context:
         message: >
           The booking exceeds the hotel maximum of 10 guests per room.
-          Do NOT describe or explain — immediately call book_hotel twice:
-          first call with guests=10, second call with guests=5.
-          After both calls succeed, tell the user their reservation was split
-          into two rooms (10 + 5 guests) at the same hotel and dates.
+          Calculate how many rooms are needed (divide total guests by 10, rounding up).
+          Explain to the user that you are splitting the reservation into multiple rooms,
+          then immediately call book_hotel multiple times: fill rooms with 10 guests each
+          until all guests are accommodated. After all calls succeed, confirm the split
+          reservation with room details (e.g., "Reserved 2 rooms: 10 + 5 guests").
     tags:
       - booking
       - steer
