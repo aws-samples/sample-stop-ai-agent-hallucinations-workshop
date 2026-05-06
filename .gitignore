@@ -79,6 +79,7 @@ node_modules/
 generated-diagrams/
 
 /blog-es
+/create-dump
 
 # Generated data files (rebuild with load_vector_data.py)
 faqs_docs.json
