@@ -27,7 +27,9 @@ _driver = None
 def _get_driver():
     global _driver
     if _driver is None:
-        password = secrets.get_secret_value(SecretId=NEO4J_PASSWORD_SECRET_ARN)["SecretString"]
+        secret_string = secrets.get_secret_value(SecretId=NEO4J_PASSWORD_SECRET_ARN)["SecretString"]
+        secret_data = json.loads(secret_string)
+        password = secret_data.get("password", secret_string)  # Support both JSON and plain text secrets
         uri = f"bolt://{NEO4J_HOST}:7687"
         _driver = GraphDatabase.driver(uri, auth=("neo4j", password))
     return _driver
