@@ -87,12 +87,7 @@ agent = Agent(
 
 ## Run the Demo
 
-```bash
-cd 07-agentcore-memory-demo
-jupyter notebook deploy_memory_agent.ipynb
-```
-
-Execute all cells. The notebook:
+Open `deploy_memory_agent.ipynb` and execute all cells. The notebook:
 1. Recovers Module 6 resources (Gateway, IAM role)
 2. Creates AgentCore Memory resource with strategies
 3. Deploys memory-enabled agent with `memory_mode="STM_AND_LTM"`

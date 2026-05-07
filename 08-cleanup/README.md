@@ -29,12 +29,7 @@ Running `cleanup.ipynb` removes:
 
 ## How to Run
 
-```bash
-cd 08-cleanup
-jupyter notebook cleanup.ipynb
-```
-
-Execute all cells in order. Each step reports:
+Open `cleanup.ipynb` and execute all cells in order. Each step reports:
 - ✅ Resource deleted successfully
 - ℹ️  Resource not found (already deleted or never created)
 - ⚠️  Deletion failed (error details shown)
