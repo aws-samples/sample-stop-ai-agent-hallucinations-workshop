@@ -78,12 +78,12 @@ def cleanup():
                 gw_id = gw["gatewayId"]
                 # Delete all targets first
                 try:
-                    targets = agentcore.list_gateway_targets(gatewayIdentifier=gw_id).get("items", [])
+                    targets = agentcore.list_gateway_targets(gatewayId=gw_id).get("items", [])
                     for t in targets:
                         tid = t.get("targetId", t.get("id", ""))
                         tname = t.get("name", tid)
                         try:
-                            agentcore.delete_gateway_target(gatewayIdentifier=gw_id, targetId=tid)
+                            agentcore.delete_gateway_target(gatewayId=gw_id, targetId=tid)
                             print(f"  Deleted target: {tname}")
                         except Exception as e:
                             print(f"  Error deleting target {tname}: {e}")
@@ -95,11 +95,11 @@ def cleanup():
 
                 # Delete gateway
                 try:
-                    agentcore.delete_gateway(gatewayIdentifier=gw_id)
+                    agentcore.delete_gateway(gatewayId=gw_id)
                     print(f"  Deleting gateway: {gw_id}...")
                     for _ in range(30):
                         try:
-                            status = agentcore.get_gateway(gatewayIdentifier=gw_id).get("status")
+                            status = agentcore.get_gateway(gatewayId=gw_id).get("status")
                             if "DELET" in str(status):
                                 select.select([], [], [], 5)
                             else:
