@@ -137,38 +137,58 @@ print("TRAVEL AGENT COMPARISON: Traditional RAG vs Graph-RAG")
 print("="*70)
 
 queries = [
-    # Test 1: Aggregation - RAG cannot compute, Graph-RAG can
-    "What is the average guest rating across all hotels in Paris?",
-    # Test 2: Precise counting - RAG guesses, Graph-RAG counts
-    "How many hotels have a swimming pool as an amenity?",
-    # Test 3: Multi-hop reasoning - RAG mixes data, Graph-RAG traverses
-    "What are the room types and prices for the highest rated hotel?",
-    # Test 4: Out-of-domain - RAG may hallucinate, Graph-RAG says no data
-    "Tell me about hotels in Antarctica",
+    {
+        "query": "What is the average guest rating of all hotels in Paris?",
+        "insight": "RAG guesses from top 3 docs | Graph-RAG calculates exact AVG() across all Paris hotels"
+    },
+    {
+        "query": "How many hotels in the database have a swimming pool?",
+        "insight": "RAG only sees top 3 docs, cannot count | Graph-RAG executes COUNT() across all 300 hotels"
+    },
+    {
+        "query": "Which hotels in Cairo have both a spa and a swimming pool, and what are their guest ratings?",
+        "insight": "RAG finds partial matches, cannot filter by multiple criteria | Graph-RAG traverses Hotel→Amenity→Amenity with AND logic"
+    },
+    {
+        "query": "Tell me about hotels in Antarctica",
+        "insight": "RAG may hallucinate plausible info | Graph-RAG returns 'No hotels found' (honest failure)"
+    },
 ]
 
-for query in queries:
+for test in queries:
+    query = test["query"]
     print(f"\n{'='*70}")
     print(f"👤 Query: {query}")
     print("="*70)
-    
+
     # Traditional RAG
-    print("\n[TRADITIONAL RAG - Vector Search]")
+    print("\n[TRADITIONAL RAG]")
     print("-" * 70)
     response = rag_agent(query)
-    print(response.message['content'][0]['text'][:300] + "...")
-    
+    print(response.message['content'][0]['text'])
+
     # Graph-RAG
-    print("\n[GRAPH-RAG - Knowledge Graph]")
+    print("\n[GRAPH-RAG]")
     print("-" * 70)
     response = graph_agent(query)
-    print(response.message['content'][0]['text'][:300] + "...")
+    print(response.message['content'][0]['text'])
+
+    print(f"\n📊 {test['insight']}")
 
 print("\n" + "="*70)
-print("KEY INSIGHTS")
+print("SUMMARY")
 print("="*70)
 print("""
-Traditional RAG: Semantic similarity, may miss context or hallucinate
-Graph-RAG: Structured queries on extracted entities, precise answers
-Result: Graph-RAG eliminates hallucinations with verified data
+Data Used:
+  - 300 hotel FAQ documents (Paris: 2 hotels with ratings 4.9★, 4.5★)
+  - Swimming pools: 175 out of 300 hotels (~58%)
+  - Knowledge graph: Auto-extracted entities (Hotel, City, Country, Amenity)
+
+Why Graph-RAG Reduces Hallucinations:
+  1. Structured queries: Cypher forces precise logic (AVG, COUNT, WHERE...AND)
+  2. Complete dataset access: Not limited to top-k vector matches
+  3. Relationship awareness: (Hotel)-[:OFFERS_AMENITY]->(Amenity) explicit
+  4. Honest failure: Empty result = "No hotels found", not fabricated data
+
+Result: Graph-RAG eliminates hallucinations with verified structured data
 """)

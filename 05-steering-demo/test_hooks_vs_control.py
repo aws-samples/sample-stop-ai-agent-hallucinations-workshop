@@ -112,6 +112,10 @@ def run_test_1_hooks():
     print(f"\n⏱️  {elapsed:.1f}s")
     print(f"🔧 Hook blocked: {hook.blocked} call(s)")
 
+    if response.metrics:
+        usage = response.metrics.accumulated_usage
+        print(f"💰 Tokens: {usage['inputTokens']} in, {usage['outputTokens']} out, {usage['totalTokens']} total")
+
     # Check if the booking actually went through with 15 guests
     if "SUCCESS" in output and "15 guests" in output:
         print("❌ Agent bypassed the hook (unexpected)")
@@ -187,6 +191,10 @@ def run_test_2_agent_control():
         print(f"\n⏱️  {elapsed:.1f}s")
         print(f"🔄 Steered: {steered} time(s)")
 
+        if response.metrics:
+            usage = response.metrics.accumulated_usage
+            print(f"💰 Tokens: {usage['inputTokens']} in, {usage['outputTokens']} out, {usage['totalTokens']} total")
+
         bk_count = output.count("BK0")
         if bk_count >= 2:
             print("✅ Agent self-corrected — split into 2 rooms (10 + 5 guests)")
@@ -195,7 +203,7 @@ def run_test_2_agent_control():
             print("⚠️  Agent completed booking but did not split into 2 rooms")
             return {"time": elapsed, "steered": steered, "outcome": "self-corrected"}
         else:
-            print(f"⚠️  Response: {output[:200]}")
+            print(f"⚠️  Response: {output}")
             return {"time": elapsed, "steered": steered, "outcome": "unclear"}
 
     except ControlViolationError as e:
@@ -206,7 +214,7 @@ def run_test_2_agent_control():
     except Exception as e:
         elapsed = time.time() - start
         print(f"\n⏱️  {elapsed:.1f}s")
-        print(f"❌ Error: {type(e).__name__}: {str(e)[:200]}")
+        print(f"❌ Error: {type(e).__name__}: {str(e)}")
         return {"time": elapsed, "outcome": "error"}
 
 

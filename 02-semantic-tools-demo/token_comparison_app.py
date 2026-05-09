@@ -1,8 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 """Token Comparison App - Measures token savings in semantic tool discovery"""
-import sys
-import io
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -32,49 +30,20 @@ TESTS = [
 ]
 
 def run_query_with_tokens(agent, query):
-    """Run query and extract token usage from agent trace"""
-    old_stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    try:
-        response = agent(query)
-    finally:
-        output = sys.stdout.getvalue()
-        sys.stdout = old_stdout
-    
-    # Try to get tokens from agent's last message
-    tokens = {'input': 0, 'output': 0, 'total': 0}
-    if hasattr(agent, 'messages') and len(agent.messages) > 0:
-        last_msg = agent.messages[-1]
-        # Check different possible locations for usage data
-        if hasattr(last_msg, 'usage') and last_msg.usage:
-            tokens['input'] = getattr(last_msg.usage, 'input_tokens', 0)
-            tokens['output'] = getattr(last_msg.usage, 'output_tokens', 0)
-            tokens['total'] = tokens['input'] + tokens['output']
-        elif hasattr(last_msg, 'response_metadata'):
-            usage = last_msg.response_metadata.get('usage', {})
-            tokens['input'] = usage.get('input_tokens', 0)
-            tokens['output'] = usage.get('output_tokens', 0)
-            tokens['total'] = tokens['input'] + tokens['output']
-    
-    # Count tools in system prompt as proxy for input tokens if no usage data
-    if tokens['total'] == 0:
-        # Estimate: each tool description ~50 tokens
-        num_tools = len(agent.tool_registry.get_all_tools_config())
-        
-        # Count conversation history (messages accumulate in memory agent)
-        history_tokens = 0
-        if hasattr(agent, 'messages') and len(agent.messages) > 2:
-            # Each previous turn adds ~100 tokens (user query + assistant response)
-            history_tokens = (len(agent.messages) - 2) * 100
-        
-        tokens['input'] = num_tools * 50 + 100 + history_tokens  # tools + prompt + history
-        tokens['output'] = 50  # estimated response
-        tokens['total'] = tokens['input'] + tokens['output']
-        tokens['estimated'] = True
-    else:
-        tokens['estimated'] = False
-    
-    return tokens
+    """Run query and extract token usage from Strands native metrics"""
+    result = agent(query)
+
+    # Use Strands native token counting
+    if result.metrics:
+        usage = result.metrics.accumulated_usage
+        return {
+            'input': usage['inputTokens'],
+            'output': usage['outputTokens'],
+            'total': usage['totalTokens'],
+            'estimated': False
+        }
+
+    return {'input': 0, 'output': 0, 'total': 0, 'estimated': True}
 
 print("="*70)
 print("TOKEN COMPARISON: Traditional vs Semantic Tool Discovery")

@@ -49,12 +49,12 @@ single_agent = Agent(
 )
 
 result = single_agent("Book anycompany_lisbon for John for 2 nights")
-print(f"✓ Response: {result.message['content'][0]['text'][:100]}...")
+print(f"✓ Response: {result.message['content'][0]['text']}")
 
 # TEST 2: Single Agent - Invalid Hotel (hallucination test)
 print("\n[TEST 2] Single Agent - Invalid Hotel (AnyCompany Antarctica doesn't exist)")
 result = single_agent("Book anycompany_antarctica for Sarah for 3 nights")
-print(f"⚠️  Response: {result.message['content'][0]['text'][:150]}...")
+print(f"⚠️  Response: {result.message['content'][0]['text']}")
 
 # TEST 3: Multi-Agent with Validation
 print("\n[TEST 3] Multi-Agent - Valid Booking with Validation")
@@ -94,7 +94,7 @@ print(f"✓ Flow: {' → '.join([n.node_id for n in result.node_history])}")
 print(f"✓ Status: {result.status}")
 final_text = result.results[result.node_history[-1].node_id].result.message['content']
 if final_text:
-    print(f"✓ Final verdict: {final_text[0]['text'][:200]}...")
+    print(f"✓ Final verdict: {final_text[0]['text']}")
 
 print("\n" + "="*70)
 print("CONCLUSION:")
