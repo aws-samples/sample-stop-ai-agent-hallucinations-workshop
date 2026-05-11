@@ -19,52 +19,64 @@ def _get_driver():
     return GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 
-def search_hotels_by_country(country: str, min_rating: float = 0.0) -> str:
-    """Search hotels in a specific country with minimum rating from Neo4j."""
+def query_hotel_knowledge_graph(cypher_query: str) -> str:
+    """Execute a Cypher query against the hotel knowledge graph.
+
+    Node labels: Hotel, Room, Amenity, Policy, Service
+    Hotel properties: name, address, guest_rating, total_rooms, email, phone
+    Room properties: type, bed_configuration, max_occupancy, min_rate, max_rate
+    Amenity properties: name, description, fee
+    Policy properties: name, description
+    Service properties: name, description, cost, hours, is_available, is_complimentary
+
+    Relationships: (Hotel)-[:HAS_ROOM]->(Room), (Hotel)-[:OFFERS_AMENITY]->(Amenity),
+                   (Hotel)-[:HAS_POLICY]->(Policy), (Hotel)-[:PROVIDES_SERVICE]->(Service)
+
+    Location is in Hotel.address property. Use: WHERE h.address CONTAINS 'Cairo'
+    IMPORTANT: All property names use snake_case (e.g., guest_rating NOT guestRating)
+    """
     driver = _get_driver()
-    query = """
-    MATCH (h)
-    WHERE any(l IN labels(h) WHERE l CONTAINS 'Hotel' OR l = 'Hotel')
-    AND (h.address CONTAINS $country OR h.name CONTAINS $country)
-    AND coalesce(h.guest_rating, 0) >= $min_rating
+    with driver.session() as session:
+        try:
+            result = session.run(cypher_query)
+            records = list(result)
+            if not records:
+                return "No results found."
+            output = f"Found {len(records)} results:\n"
+            for record in records[:15]:
+                output += f"  {dict(record.items())}\n"
+            return output
+        except Exception as e:
+            return f"Query error: {str(e)}"
+        finally:
+            driver.close()
+
+
+# Keep old functions for backward compatibility but marked as deprecated
+def search_hotels_by_country(country: str, min_rating: float = 0.0) -> str:
+    """[DEPRECATED] Use query_hotel_knowledge_graph instead.
+
+    Search hotels in a specific country with minimum rating from Neo4j."""
+    query = f"""
+    MATCH (h:Hotel)
+    WHERE h.address CONTAINS '{country}' OR h.name CONTAINS '{country}'
+    AND coalesce(h.guest_rating, 0) >= {min_rating}
     RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
     ORDER BY h.guest_rating DESC
     LIMIT 10
     """
-    with driver.session() as session:
-        result = session.run(query, country=country, min_rating=min_rating)
-        records = list(result)
-    driver.close()
-
-    if not records:
-        return f"No hotels found in {country} with rating >= {min_rating}"
-
-    output = f"Found {len(records)} hotels in {country}:\n"
-    for r in records:
-        output += f"- {r['name']} ({r['address']}): {r['rating']}/5.0, {r['rooms']} rooms\n"
-    return output
+    return query_hotel_knowledge_graph(query)
 
 
 def get_top_rated_hotels(limit: int = 5) -> str:
-    """Get top-rated hotels from Neo4j knowledge graph."""
-    driver = _get_driver()
-    query = """
-    MATCH (h)
-    WHERE any(l IN labels(h) WHERE l CONTAINS 'Hotel' OR l = 'Hotel')
-    AND h.guest_rating IS NOT NULL
+    """[DEPRECATED] Use query_hotel_knowledge_graph instead.
+
+    Get top-rated hotels from Neo4j knowledge graph."""
+    query = f"""
+    MATCH (h:Hotel)
+    WHERE h.guest_rating IS NOT NULL
     RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
     ORDER BY h.guest_rating DESC
-    LIMIT $limit
+    LIMIT {limit}
     """
-    with driver.session() as session:
-        result = session.run(query, limit=limit)
-        records = list(result)
-    driver.close()
-
-    if not records:
-        return "No hotels found in database"
-
-    output = f"Top {len(records)} rated hotels:\n"
-    for i, r in enumerate(records, 1):
-        output += f"{i}. {r['name']} ({r['address']}): {r['rating']}/5.0\n"
-    return output
+    return query_hotel_knowledge_graph(query)

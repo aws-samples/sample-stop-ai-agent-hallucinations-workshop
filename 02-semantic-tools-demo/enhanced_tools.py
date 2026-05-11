@@ -11,10 +11,13 @@ from strands import tool
 try:
     import sys
     sys.path.append('../01-graphrag-demo/tools')
-    from graph_tool import search_hotels_by_country, get_top_rated_hotels
+    from graph_tool import query_hotel_knowledge_graph
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
+    # Create a mock version if import fails
+    def query_hotel_knowledge_graph(cypher_query: str) -> str:
+        return f"Mock: Would execute Cypher query: {cypher_query[:100]}..."
 
 # ============================================================================
 # HOTEL TOOLS (Real Database + Mock)
@@ -22,22 +25,47 @@ except ImportError:
 
 @tool
 def search_real_hotels(country: str, min_rating: float = 0.0) -> str:
-    """Search real hotels in a specific country from our database."""
+    """Search real hotels in a specific country from our hotel knowledge graph database.
+
+    This tool queries a Neo4j graph database with 300 hotels worldwide.
+    Returns hotel name, address, guest rating, and number of rooms.
+    """
     if not NEO4J_AVAILABLE:
         return f"Mock: Hotels in {country} with rating >= {min_rating}"
     try:
-        results = search_hotels_by_country(country, min_rating)
+        # Generate Cypher query with correct snake_case property names
+        query = f"""
+        MATCH (h:Hotel)
+        WHERE h.address CONTAINS '{country}' OR h.name CONTAINS '{country}'
+        AND coalesce(h.guest_rating, 0) >= {min_rating}
+        RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
+        ORDER BY h.guest_rating DESC
+        LIMIT 10
+        """
+        results = query_hotel_knowledge_graph(query)
         return results
     except Exception as e:
         return f"Error: {str(e)}"
 
 @tool
 def get_top_hotels(limit: int = 5) -> str:
-    """Get the top-rated hotels from our database."""
+    """Get the top-rated hotels from our hotel knowledge graph database.
+
+    This tool queries a Neo4j graph database to find the highest-rated hotels.
+    Returns hotel name, address, and guest rating.
+    """
     if not NEO4J_AVAILABLE:
         return f"Mock: Top {limit} hotels"
     try:
-        results = get_top_rated_hotels(limit)
+        # Generate Cypher query with correct snake_case property names
+        query = f"""
+        MATCH (h:Hotel)
+        WHERE h.guest_rating IS NOT NULL
+        RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
+        ORDER BY h.guest_rating DESC
+        LIMIT {limit}
+        """
+        results = query_hotel_knowledge_graph(query)
         return results
     except Exception as e:
         return f"Error: {str(e)}"
