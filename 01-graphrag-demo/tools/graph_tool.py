@@ -26,9 +26,9 @@ def search_hotels_by_country(country: str, min_rating: float = 0.0) -> str:
     MATCH (h)
     WHERE any(l IN labels(h) WHERE l CONTAINS 'Hotel' OR l = 'Hotel')
     AND (h.address CONTAINS $country OR h.name CONTAINS $country)
-    AND coalesce(h.guestRating, 0) >= $min_rating
-    RETURN h.name AS name, h.address AS address, h.guestRating AS rating, h.totalRooms AS rooms
-    ORDER BY h.guestRating DESC
+    AND coalesce(h.guest_rating, 0) >= $min_rating
+    RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
+    ORDER BY h.guest_rating DESC
     LIMIT 10
     """
     with driver.session() as session:
@@ -51,9 +51,9 @@ def get_top_rated_hotels(limit: int = 5) -> str:
     query = """
     MATCH (h)
     WHERE any(l IN labels(h) WHERE l CONTAINS 'Hotel' OR l = 'Hotel')
-    AND h.guestRating IS NOT NULL
-    RETURN h.name AS name, h.address AS address, h.guestRating AS rating, h.totalRooms AS rooms
-    ORDER BY h.guestRating DESC
+    AND h.guest_rating IS NOT NULL
+    RETURN h.name AS name, h.address AS address, h.guest_rating AS rating, h.total_rooms AS rooms
+    ORDER BY h.guest_rating DESC
     LIMIT $limit
     """
     with driver.session() as session:
