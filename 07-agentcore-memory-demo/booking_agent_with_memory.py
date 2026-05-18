@@ -197,8 +197,20 @@ def invoke(payload, context: RequestContext = None):
     prompt = payload if isinstance(payload, str) else payload.get("prompt", "")
     result = agent(prompt)
 
+    # Extract tool calls from Strands Agent result
+    # result.message is a TypedDict with 'content' list of ContentBlocks
+    # ToolUse blocks have 'name' and 'toolUseId' fields
+    tools_used = []
+    if hasattr(result, 'message') and isinstance(result.message, dict):
+        content = result.message.get('content', [])
+        for block in content:
+            if isinstance(block, dict) and 'name' in block and 'toolUseId' in block:
+                # This is a ToolUse block
+                tools_used.append(block['name'])
+
     return {
-        "response": result.message.get('content', [{}])[0].get('text', str(result))
+        "response": result.message.get('content', [{}])[0].get('text', str(result)),
+        "tools_used": tools_used
     }
 
 
