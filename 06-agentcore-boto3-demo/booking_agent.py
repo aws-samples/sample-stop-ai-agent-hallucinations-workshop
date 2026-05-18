@@ -144,16 +144,19 @@ def invoke(payload, context=None):
         prompt = payload if isinstance(payload, str) else payload.get("prompt", "")
         result = agent(prompt)
 
-        # Extract tool calls from Strands Agent result
-        # result.message is a TypedDict with 'content' list of ContentBlocks
-        # ToolUse blocks have 'name' field
+        # Extract tool calls from Strands Agent metrics
+        # result.metrics.tool_metrics is a dict where keys are tool names
         tools_used = []
-        if hasattr(result, 'message') and isinstance(result.message, dict):
-            content = result.message.get('content', [])
-            for block in content:
-                if isinstance(block, dict) and 'name' in block and 'toolUseId' in block:
-                    # This is a ToolUse block
-                    tools_used.append(block['name'])
+        if hasattr(result, 'metrics') and hasattr(result.metrics, 'tool_metrics'):
+            tool_metrics = result.metrics.tool_metrics
+            tools_used = list(tool_metrics.keys())
+
+            # Log for debugging - verify MCP Gateway tools are tracked
+            app.logger.info(f"Tool metrics found: {len(tools_used)} tools")
+            for tool_name, metrics in tool_metrics.items():
+                app.logger.info(f"  Tool: {tool_name}, Calls: {metrics.call_count if hasattr(metrics, 'call_count') else 'unknown'}")
+        else:
+            app.logger.warning("No tool metrics found in result")
 
         # Return response with tool usage metadata
         import json
