@@ -159,11 +159,10 @@ def invoke(payload, context=None):
             app.logger.warning("No tool metrics found in result")
 
         # Return response with tool usage metadata
-        import json
-        return json.dumps({
+        return {
             "response": str(result),
             "tools_used": tools_used
-        })
+        }
 
 
 if __name__ == "__main__":
