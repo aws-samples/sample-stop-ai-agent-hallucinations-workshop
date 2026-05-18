@@ -119,10 +119,10 @@ Agent: Based on your preference for 4-star hotels in Paris, I recommend...
 
 To delete the Memory resource:
 ```python
-agentcore_control.delete_memory(memoryIdentifier=MEMORY_ID)
+agentcore_control.delete_memory(memoryId=MEMORY_ID)
 ```
 
 To delete the memory-enabled agent:
 ```python
-agentcore.delete_agent_runtime(agentRuntimeIdentifier=MEMORY_RUNTIME_ID)
+agentcore.delete_agent_runtime(agentRuntimeId=MEMORY_RUNTIME_ID)
 ```
