@@ -5,19 +5,62 @@ Enhanced Travel Agent Tools
 Combines mock tools with real hotel database access
 """
 import os
+import sys
+
 from strands import tool
 
-# Try to import Neo4j tools from the Graph-RAG demo (Module 1)
+# Make the Graph-RAG demo's tools (Module 1) importable regardless of the
+# current working directory. The path is resolved relative to THIS file, so it
+# works whether the demo is launched from 02-semantic-tools-demo/ or from the
+# repository root.
+_GRAPH_TOOLS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "01-graphrag-demo", "tools")
+)
+if _GRAPH_TOOLS_DIR not in sys.path:
+    sys.path.append(_GRAPH_TOOLS_DIR)
+
 try:
-    import sys
-    sys.path.append('../01-graphrag-demo/tools')
     from graph_tool import query_hotel_knowledge_graph
-    NEO4J_AVAILABLE = True
 except ImportError:
-    NEO4J_AVAILABLE = False
-    # Create a mock version if import fails
+    # The Neo4j tools are not importable at all — fall back to a mock.
     def query_hotel_knowledge_graph(cypher_query: str) -> str:
         return f"Mock: Would execute Cypher query: {cypher_query[:100]}..."
+
+
+def _neo4j_available() -> bool:
+    """Return True only when Neo4j is both importable AND reachable.
+
+    Importing graph_tool succeeds even with no database running, so the import
+    alone says nothing about connectivity. This opens a short-timeout driver
+    and verifies the connection. Any failure (missing driver, unreachable
+    server, bad credentials) means the real-data hotel tools cannot run, so the
+    demo falls back to mock responses. Defensive by design: importing this
+    module must never crash, so every failure mode is treated as "unavailable".
+    """
+    try:
+        from neo4j import GraphDatabase
+
+        from graph_tool import NEO4J_PASSWORD, NEO4J_URI, NEO4J_USERNAME
+
+        driver = GraphDatabase.driver(
+            NEO4J_URI,
+            auth=(NEO4J_USERNAME, NEO4J_PASSWORD),
+            connection_timeout=3,
+            # This probe runs at module import, so an unbounded acquisition here
+            # hangs notebook startup with no output. connection_timeout covers only
+            # the TCP connect; this ceiling also covers the TLS and Bolt handshakes (F15).
+            connection_acquisition_timeout=5,
+        )
+        try:
+            driver.verify_connectivity()
+        finally:
+            driver.close()
+        return True
+    except Exception:
+        return False
+
+
+NEO4J_AVAILABLE = _neo4j_available()
 
 # ============================================================================
 # HOTEL TOOLS (Real Database + Mock)

@@ -16,9 +16,7 @@ import json
 import boto3
 import numpy as np
 
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+from graph_config import NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD
 
 # Amazon Bedrock Nova 2 for embeddings
 _bedrock = boto3.client("bedrock-runtime", region_name=os.environ.get("AWS_REGION", "us-east-1"))
@@ -66,25 +64,26 @@ def query_knowledge_graph(cypher_query: str) -> str:
     Cypher is Neo4j's query language for graph databases. It uses pattern matching
     to query relationships between entities. Think of it like SQL for graphs.
     
-    Example: MATCH (h:Hotel)-[:HAS_ROOM]->(r:Room) WHERE h.name = 'Marriott' RETURN r.price
-    
+    Example: MATCH (h:Hotel)-[:HAS_ROOM]->(r:Room) WHERE h.name = 'Marriott' RETURN r.max_rate
+
     Node labels: Hotel, Room, Amenity, Policy, Service
-    
-    Hotel properties: name, address, guestRating, totalRooms, email, phone
-    Room properties: name (e.g. "Standard Room"), price, maxOccupancy
-    Amenity properties: name (e.g. "Outdoor Swimming Pool", "WiFi")
-    Policy properties: name (e.g. "Check-in Policy"), details
-    
+    Hotel properties: name, address, guest_rating, total_rooms, email, phone
+    Room properties: type, bed_configuration, max_occupancy, min_rate, max_rate
+    Amenity properties: name, description, fee
+    Policy properties: name, description
+    Service properties: name, description, cost, hours, is_available, is_complimentary
+
     Relationships:
     - (Hotel)-[:HAS_ROOM]->(Room)
     - (Hotel)-[:OFFERS_AMENITY]->(Amenity)
     - (Hotel)-[:HAS_POLICY]->(Policy)
     - (Hotel)-[:PROVIDES_SERVICE]->(Service)
-    
+
     Location is in Hotel.address property (e.g. "789 Corniche el-Nil, Cairo 11519").
     To find hotels by location, use: WHERE h.address CONTAINS 'Cairo'
+    IMPORTANT: All property names use snake_case (e.g. guest_rating NOT guestRating)
     """
-    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
     
     with driver.session() as session:
         try:
@@ -116,6 +115,39 @@ def query_knowledge_graph(cypher_query: str) -> str:
 #
 # See all providers: https://strandsagents.com/docs/user-guide/concepts/model-providers/
 
+def graph_stats():
+    """Measure the corpus from the graph itself.
+
+    Every count this demo prints is read back from Neo4j at runtime. Hardcoding
+    them ("300 hotels", "175 with a pool") makes the summary drift silently the
+    moment the graph is rebuilt from a different sample — and the whole claim of
+    the demo is that Graph-RAG reports what is actually there.
+    """
+    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
+    try:
+        with driver.session() as session:
+            return session.run(
+                """
+                MATCH (h:Hotel)
+                WITH count(h) AS hotels
+                MATCH (p:Hotel)-[:OFFERS_AMENITY]->(a:Amenity)
+                WHERE toLower(a.name) CONTAINS 'pool'
+                WITH hotels, count(DISTINCT p) AS with_pool
+                MATCH (paris:Hotel) WHERE paris.address CONTAINS 'Paris'
+                RETURN hotels, with_pool,
+                       count(paris) AS paris_hotels,
+                       round(avg(paris.guest_rating), 2) AS paris_avg
+                """
+            ).single()
+    finally:
+        driver.close()
+
+
+STATS = graph_stats()
+HOTELS = STATS["hotels"]
+WITH_POOL = STATS["with_pool"]
+POOL_PCT = round(100 * WITH_POOL / HOTELS) if HOTELS else 0
+
 # Traditional RAG Agent
 rag_agent = Agent(
     name="RAG_Agent",
@@ -143,7 +175,7 @@ queries = [
     },
     {
         "query": "How many hotels in the database have a swimming pool?",
-        "insight": "RAG only sees top 3 docs, cannot count | Graph-RAG executes COUNT() across all 300 hotels"
+        "insight": f"RAG only sees top 3 docs, cannot count | Graph-RAG executes COUNT() across all {HOTELS} hotels in the graph"
     },
     {
         "query": "Which hotels in Cairo have both a spa and a swimming pool, and what are their guest ratings?",
@@ -178,11 +210,12 @@ for test in queries:
 print("\n" + "="*70)
 print("SUMMARY")
 print("="*70)
-print("""
-Data Used:
-  - 300 hotel FAQ documents (Paris: 2 hotels with ratings 4.9★, 4.5★)
-  - Swimming pools: 175 out of 300 hotels (~58%)
-  - Knowledge graph: Auto-extracted entities (Hotel, City, Country, Amenity)
+print(f"""
+Data Used (measured from the graph at runtime, not hardcoded):
+  - {HOTELS} hotels in the knowledge graph
+  - Paris: {STATS['paris_hotels']} hotels, average guest rating {STATS['paris_avg']}★
+  - Swimming pools: {WITH_POOL} out of {HOTELS} hotels (~{POOL_PCT}%)
+  - Knowledge graph: pinned schema (Hotel, Room, Amenity, Policy, Service)
 
 Why Graph-RAG Reduces Hallucinations:
   1. Structured queries: Cypher forces precise logic (AVG, COUNT, WHERE...AND)

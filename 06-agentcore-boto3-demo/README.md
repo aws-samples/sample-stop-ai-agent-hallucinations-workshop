@@ -62,7 +62,7 @@ Before starting, make sure you have:
 - **[Python](https://python.org/downloads) 3.11+** installed
 - **[uv](https://docs.astral.sh/uv/)** package manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
 - **[AWS CLI](https://aws.amazon.com/cli/)** installed and configured with credentials for your account
-- **Amazon Bedrock access** — enable `us.anthropic.claude-sonnet-4-5` (or equivalent) in your region via the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess)
+- **Amazon Bedrock access** — enable `us.anthropic.claude-sonnet-5` (or equivalent) in your region via the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess)
 
 ### Step 1: Install dependencies
 
@@ -215,7 +215,7 @@ aws dynamodb update-item \
 | [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/) | Runtime (agent hosting), Gateway (MCP semantic tool routing) |
 | [Amazon DynamoDB](https://aws.amazon.com/dynamodb/) | Hotels catalog, bookings, and steering rules |
 | [AWS Lambda](https://aws.amazon.com/lambda/) | Serverless tool functions (search, book, validate, query graph) |
-| [Amazon Bedrock](https://aws.amazon.com/bedrock/) | LLM provider (Claude Sonnet 4 via Strands BedrockModel) |
+| [Amazon Bedrock](https://aws.amazon.com/bedrock/) | LLM provider (Claude Sonnet 5 via Strands BedrockModel) |
 | [bedrock-agentcore-starter-toolkit](https://pypi.org/project/bedrock-agentcore-starter-toolkit/) | Packages and deploys the agent container to AgentCore Runtime |
 | [Strands Agents](https://github.com/strands-agents/sdk-python) | Open-source agent framework (tool calling, lifecycle hooks) |
 | [Neo4j AuraDB Free](https://neo4j.com/cloud/aura-free/) | Managed graph database for knowledge graph (optional) |

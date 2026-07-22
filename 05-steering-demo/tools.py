@@ -10,14 +10,37 @@ Validation is handled externally:
 See: https://strandsagents.com/docs/user-guide/concepts/tools/custom-tools/
 """
 
+from datetime import datetime, timedelta
+
 from strands import tool
 
-STATE = {
-    "bookings": {
-        "BK001": {"hotel": "AnyCompany Lisbon Resort", "check_in": "2026-04-15", "guests": 2, "total": 400},
-    },
-    "payments": {},
-}
+# The seed booking's check-in is computed relative to today so a fixed date does
+# not silently rot into the past across the two tests.
+_SEED_CHECK_IN = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+
+
+def _seed_state() -> dict:
+    """Fresh initial STATE: one pre-seeded booking, no payments."""
+    return {
+        "bookings": {
+            "BK001": {
+                "hotel": "AnyCompany Lisbon Resort",
+                "check_in": _SEED_CHECK_IN,
+                "guests": 2,
+                "total": 400,
+            },
+        },
+        "payments": {},
+    }
+
+
+STATE = _seed_state()
+
+
+def reset_state() -> None:
+    """Restore STATE to its seed so one test cannot leak bookings into the next."""
+    STATE.clear()
+    STATE.update(_seed_state())
 
 
 @tool

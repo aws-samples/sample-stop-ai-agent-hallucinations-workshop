@@ -6,9 +6,7 @@
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![FAISS](https://img.shields.io/badge/FAISS-Semantic_Filtering-blue.svg?style=flat)](https://github.com/facebookresearch/faiss)
 
-![Traditional vs Semantic Tool Discovery comparison](images/semantic-tool-selection-filtering.png)
-
-**AI agents with many similar tools pick the wrong one and waste tokens. This demo builds a travel agent with Strands Agents and uses FAISS to filter 29 tools down to the top 3 most relevant, comparing filtered vs unfiltered tool selection accuracy.**
+**AI agents with many similar tools waste tokens sending every schema on every call. This demo builds a travel agent with Strands Agents and uses FAISS to filter 29 tools down to the top 3 most relevant, then measures what that costs and what it saves.**
 
 Based on research: ["Internal Representations as Indicators of Hallucinations in Agent Tool Selection"](https://arxiv.org/abs/2601.05214)
 
@@ -24,7 +22,7 @@ Research ([Internal Representations, 2025](https://arxiv.org/abs/2601.05214)) id
 
 **The dual problem**:
 - ❌ **Hallucination risk**: More tools = more inappropriate selections
-- ❌ **Token waste**: Sending all tool descriptions on every call (29 tools = ~4,000 tokens per query)
+- ❌ **Token waste**: Sending all tool descriptions on every call. Measured at ~6,500 tokens per query for 29 tools in this demo, counting the tool schemas plus system prompt, user turn, tool results, and model output.
 
 ## The Solution
 
@@ -32,7 +30,7 @@ Semantic tool selection filters tools **before** the agent sees them:
 
 ![Semantic tool selection flow diagram](images/semantic-tool-selection.png)
 
-**Results**: Improved accuracy, fewer tokens
+**Measured result: a 74.1% token reduction over 24 queries, at an accuracy cost of one query.** See [What this demo actually measures](#what-this-demo-actually-measures) for the full figures and how to read them.
 
 ### Why Strands Agents Supports This at Scale
 
@@ -74,16 +72,9 @@ This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Age
 
 You can swap the model for any provider supported by Strands — Amazon Bedrock, Anthropic, Ollama, etc. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
 
-### Configure Environment Variables
+### Configure Credentials
 
-Create a `.env` file with your OpenAI API key:
-
-```bash
-# OpenAI API Key (required)
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-**How to get your API key**: Get from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+AWS credentials are the only credential this demo needs. No `.env` file and no API keys from any other provider are required.
 
 ### Install
 
@@ -95,27 +86,27 @@ uv venv && uv pip install -r requirements.txt
 
 | File | Purpose |
 |------|---------|
-| `test_semantic_tools_hallucinations.ipynb` | **Main demo** - Comprehensive notebook with 29 tools, ground truth verification |
+| `token_efficiency_analysis.ipynb` | **Main demo** - Comprehensive notebook with 29 tools, ground truth verification |
 | `token_comparison_app.py` | **Token savings verification** - Standalone script to measure token reduction |
-| `enhanced_tools.py` | 31 travel agent tools (29 generic + 2 with optional Neo4j data) |
+| `enhanced_tools.py` | The 29 travel agent tools, 2 of which read optional Neo4j data |
 | `registry.py` | FAISS-based semantic tool filtering |
 
 ## Run the Demo
 
 ```bash
-Open `test_semantic_tools_hallucinations.ipynb` in your IDE (VS Code, Kiro, or any editor with notebook support).
+Open `token_efficiency_analysis.ipynb` in your IDE (VS Code, Kiro, or any editor with notebook support).
 ```
 
 **What it does**:
-1. Tests 13 travel queries on 29 tools
-2. Compares Traditional (all 29 tools) vs Semantic (top 3 filtered)
-3. Verifies against ground truth (real hotel database)
-4. Shows token savings and error reduction
+1. Tests 24 travel queries against 29 tools
+2. Compares Traditional, which sends all 29 tools, against Semantic, which sends the top 3
+3. Scores each tool call against ground truth from the real hotel database
+4. Reports measured token cost and measured accuracy for both, whichever way they come out
 
 **Key features**:
 - Real hotel data from Neo4j graph database
-- Objective accuracy measurement
-- Detailed error analysis
+- Objective accuracy measurement, scored against ground truth rather than model prose
+- Detailed error analysis, including which queries lost the correct tool to the top-3 cut
 - Token cost comparison
 
 ## Verify Token Savings
@@ -132,26 +123,97 @@ uv run token_comparison_app.py
 - Demonstrates memory accumulation cost
 - Verifies `swap_tools()` preserves conversation history
 
-**Expected output**:
+**Measured output**, real stdout from `token_comparison_app.py` over 3 queries:
 
-![Token reduction comparison — traditional vs semantic vs memory](images/semantic-tools-demo-tokens-reduction.png)
+```
+Total tokens:
+  Traditional:      17182 tokens
+  Semantic:          6614 tokens (+61.5%)
+  Semantic+Memory:   8170 tokens (+52.5%)
 
-![Accuracy and token cost comparison charts](images/semantic-tool-selection-results.png)
+Query                                             Trad      Sem      Mem    Saved
+----------------------------------------------------------------------
+What's the weather in Paris?                      6803     1737     1720     5083
+Find flights from NYC to London                   7001     1953     2317     4684
+Book a hotel in Rome for John                     3378     2924     4133     -755
+```
 
-**Token breakdown**:
-- **Traditional**: 29 tools × 50 tokens = ~1450 tokens/query (constant)
-- **Semantic**: 3 tools × 50 tokens = ~150 tokens/query (constant)
-- **Memory**: ~150 tokens + conversation history (~400 tokens/turn, accumulates)
+The 24-query notebook measures the same effect at larger scale:
+
+```
+💰 Token Consumption:
+   Traditional:      155,452 tokens (6477 avg)
+   Semantic:         40,203 tokens (1675 avg)
+   Semantic+Memory:  97,404 tokens (4058 avg)
+
+💡 Token Savings (measured this run, not a cited figure):
+   Semantic vs Traditional:  115,249 tokens (74.1% reduction)
+   Memory vs Traditional:    58,048 tokens (37.3% reduction)
+```
+
+**These numbers are LLM output and vary between runs.** Expect roughly 60-75% reduction for the semantic approach depending on query mix and turn count, not a single fixed figure. The 3-query script and the 24-query notebook measure different workloads and should not be expected to agree.
+
+## What this demo actually measures
+
+The honest version of this demo's result, stated in full:
+
+> Over 24 travel queries against 29 tools, filtering to the top 3 by FAISS similarity
+> reduced token consumption by **74.1%**, from 155,452 tokens to 40,203. On the same
+> run, tool selection accuracy was **16/24 for Traditional and 15/24 for Semantic**,
+> a difference of **one query**.
+
+**That accuracy difference is not a result.** At n=24, one query is a single sample. It
+is not evidence that semantic filtering harms accuracy, and it is not evidence that it
+helps. Establishing either would need a far larger evaluation than this workshop runs.
+The 15-versus-16 split has now reproduced across three runs, which makes it a stable
+observation about this particular query set, not a measurement of the technique.
+
+So the claim this demo supports is a **cost tradeoff, not an accuracy win**:
+
+| Measured over 24 queries | Traditional | Semantic |
+|---|---|---|
+| Total tokens | 155,452 | 40,203 |
+| Avg tokens/query | 6,477 | 1,675 |
+| Token reduction | baseline | **74.1%** |
+| Tool selection accuracy | 16/24 | 15/24 |
+| Accuracy difference | baseline | 1 query, within noise at this sample size |
+
+**Why filtering can cost accuracy at all.** Semantic filtering can only help the agent
+if the correct tool survives the top-3 cut. When FAISS ranks the right tool fourth or
+lower, the agent never sees it and cannot recover, no matter how capable the model is.
+The notebook's Error Analysis cell labels exactly these cases with
+`⚠️ Correct tool NOT in top-3 (FAISS filtering issue)`. That is the real failure mode to
+understand, and it is the one to tune `top_k` against on your own tool set.
+
+**Why this demo reports it this way.** An earlier version of this README claimed
+semantic filtering improved accuracy. Measurement did not support that, so the claim
+was removed rather than the measurement adjusted. A workshop about grounding model
+output in verifiable evidence has to hold its own documentation to the same standard.
+The token reduction is large, reproducible, and worth adopting on its own; it does not
+need an accuracy claim propped up next to it.
+
+> **Note on the removed charts.** Three PNGs under `images/` previously appeared in this
+> README and have been unlinked, not deleted. They were generated before the token
+> accounting was fixed and show figures that no longer match anything this demo
+> produces: placeholder per-query estimates, a 75% reduction against the measured
+> 61.5%, a "30 tools" label, a response-time comparison the demo never measures, and
+> a 100%-versus-75% accuracy chart asserting exactly the improvement the measurements
+> above do not support. The files remain on disk pending regeneration. The real stdout
+> quoted above replaces them.
+
+**Where the savings come from**: the tool schemas are the only part of the prompt that semantic filtering removes. Dropping 29 schemas to 3 is the constant-size win. System prompt, user turn, tool results, and model output are unaffected and are included in every figure above, which is why the measured reduction is below what a schema-only calculation predicts.
+
+**Bounded conversation history**: the memory variant trims to the last 3 turns via `trim_history()`. Without a bound, the full transcript is resent on every call, cost grows quadratically with turn count, and the memory variant becomes more expensive than sending all 29 tools every time.
 
 ## How It Works
 
 ### Traditional Approach (Baseline)
 ```python
-# Agent sees ALL 31 tools on every query
+# Agent sees ALL 29 tools on every query
 agent = Agent(tools=ALL_TOOLS, model=model)
 agent("How much does Hotel Marriott cost?")
-# Token cost: ~4,500 tokens (31 tool descriptions)
-# Risk: Picks wrong tool from 31 options
+# Measured: ~6,500 tokens/query across the 24-query notebook run
+# Risk: Picks wrong tool from 29 options
 ```
 
 ### Semantic Approach (Optimized)
@@ -167,7 +229,7 @@ relevant_tools = search_tools(query, top_k=3)
 # 3. Agent sees only 3 relevant tools
 agent = Agent(tools=relevant_tools, model=model)
 agent(query)
-# Token cost: ~500 tokens (3 tool descriptions)
+# Measured: ~1,700 tokens/query across the same run
 # Risk: Picks correct tool from 3 focused options
 ```
 
@@ -234,11 +296,23 @@ This demo implements findings from:
 
 ### How much does semantic tool selection reduce token usage?
 
-Semantic filtering reduces token consumption by approximately 89%. Instead of sending all 29 tool descriptions (~1,450 tokens) on every query, FAISS-based filtering selects the top 3 relevant tools (~150 tokens). This reduction is constant per query and compounds across multi-turn conversations.
+**Measured in this demo: 61.5% over 3 queries (`token_comparison_app.py`) and 74.1% over 24 queries (`token_efficiency_analysis.ipynb`).** Both figures are LLM output and move between runs, so treat 60-75% as the range this demo reproduces rather than a fixed number.
+
+FAISS-based filtering sends the top 3 tool schemas instead of all 29. That saving is constant per query, but it applies only to the schema portion of the prompt. System prompt, user turn, tool results, and model output are unchanged, which is why the end-to-end reduction lands below a schema-only estimate.
+
+A separate published figure of **89%** comes from a third-party writeup, [rconnect.tech](https://www.rconnect.tech/blog/semantic-tool-selection-guide). It is a citation from someone else's production system, not a result this demo produces.
 
 ### Does filtering tools break conversation memory?
 
-No. Strands Agents' `swap_tools()` function changes the available tools at runtime without recreating the agent, preserving the full conversation history in `agent.messages`. This is a key production advantage over frameworks that require agent recreation to change tools.
+No. Strands Agents' `swap_tools()` function changes the available tools at runtime without recreating the agent, preserving conversation history in `agent.messages`. This is a key production advantage over frameworks that require agent recreation to change tools.
+
+Preserved history is not free. It is resent on every call, so an unbounded transcript grows cost quadratically with turn count and will overtake the saving from filtering tools. This demo bounds history to the last 3 turns with `trim_history()`. Measured over 24 queries, the bounded memory variant uses 97,404 tokens against a 155,452-token traditional baseline, a 37.3% reduction. It costs more than stateless semantic filtering at 40,203 tokens, which is the price of keeping the conversation.
+
+### Does semantic filtering improve tool selection accuracy?
+
+**Not measurably, on this demo's evidence.** Over 24 queries, Traditional scored 16/24 and Semantic scored 15/24. That one-query gap is within noise at this sample size and should not be read as a finding in either direction. See [What this demo actually measures](#what-this-demo-actually-measures).
+
+The reason to adopt semantic filtering here is the 74.1% token reduction, which is large and reproduces across runs. Treat accuracy as something to measure on your own tool set rather than a benefit that comes bundled with the cost saving. If the correct tool falls outside the top 3, the agent cannot call it at all, so `top_k` is the parameter to tune against your own query mix.
 
 ### Can I use semantic tool selection with other agent frameworks?
 

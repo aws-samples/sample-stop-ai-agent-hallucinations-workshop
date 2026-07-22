@@ -28,6 +28,7 @@ graph-db/
 # Jupyter
 .ipynb_checkpoints/
 *_executed.ipynb
+setup/notebook-output/
 
 # IDE
 .idea/
@@ -44,6 +45,7 @@ Thumbs.db
 # Credentials
 .env
 .env.*
+!.env.example
 
 # Neo4j (local database files)
 neo4j/
@@ -71,6 +73,8 @@ deployment_package.zip
 .bedrock_agentcore.yaml
 06-agentcore-boto3-demo/Dockerfile
 06-agentcore-boto3-demo/.dockerignore
+07-agentcore-memory-demo/Dockerfile
+07-agentcore-memory-demo/.dockerignore
 
 # Node (CDK)
 node_modules/
@@ -89,3 +93,14 @@ faqs_docs_lite.json
 faqs_vector_lite.index
 # hotel-faqs.zip is tracked — needed for auto-extraction in the workshop notebooks
 !01-graphrag-demo/hotel-faqs.zip
+logs/
+verify-worklog.md
+*-executed.ipynb
+*-executed-*.ipynb
+*-verify.ipynb
+*-normalized.ipynb
+
+# Internal review + scratch harness (untracked, do not ship)
+verify-v2.md
+*-fix07-infra.ipynb
+neo4j-ftw.md

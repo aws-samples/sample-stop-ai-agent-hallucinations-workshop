@@ -128,17 +128,21 @@ SYSTEM_PROMPT = (
 
 app = BedrockAgentCoreApp()
 
-# Global agent instance (reused across invocations in the same container)
+# Reuse the agent only while actor and session are unchanged. A different
+# session needs a new memory session manager so AgentCore retrieves LTM instead
+# of continuing to use the previous session's STM.
 _agent = None
+_agent_identity = None
 
-def get_or_create_agent(actor_id: str, session_id: str):
-    """
-    Get existing agent or create new one with memory configuration.
-    The agent is cached globally to reuse MCP connection and memory session.
-    """
-    global _agent
 
-    if _agent is None:
+def get_or_create_agent(actor_id: str, session_id: str | None) -> Agent:
+    """
+    Reuse an agent for one actor/session pair, or create one for a new pair.
+    """
+    global _agent, _agent_identity
+
+    identity = (actor_id, session_id)
+    if _agent is None or _agent_identity != identity:
         model = BedrockModel(region_name=_region)
         hooks = [BookingGuardrailsHook()]
         mcp_client = MCPClient(lambda: streamablehttp_client(GATEWAY_URL))
@@ -167,6 +171,7 @@ def get_or_create_agent(actor_id: str, session_id: str):
             hooks=hooks,
             session_manager=session_manager
         )
+        _agent_identity = identity
 
     return _agent
 

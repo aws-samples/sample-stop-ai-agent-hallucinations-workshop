@@ -4,12 +4,17 @@
 Build LITE FAISS vector store from hotel FAQ documents using Amazon Bedrock Nova 2.
 
 LITE VERSION: Processes only 30 documents (10% of full dataset) for faster testing.
+
+Uses the same city-stratified sample as `build_graph_lite.py`, so the RAG and
+Graph-RAG sides of the comparison see exactly the same corpus.
 """
 import json
 import os
 import faiss
 import boto3
 from pathlib import Path
+
+from graph_config import select_lite_files
 
 MODEL_ID = "amazon.nova-2-multimodal-embeddings-v1:0"
 REGION = os.environ.get("AWS_REGION", "us-east-1")
@@ -45,7 +50,8 @@ def load_to_vector_store():
     documents = []
     data_dir = Path("data")
 
-    for faq_file in sorted(data_dir.glob("*.txt"))[:MAX_DOCS]:
+    for name in select_lite_files(data_dir, MAX_DOCS):
+        faq_file = data_dir / name
         with open(faq_file, "r", encoding="utf-8") as f:
             text = f.read()
             documents.append({"filename": faq_file.name, "text": text})

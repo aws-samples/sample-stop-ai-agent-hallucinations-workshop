@@ -101,6 +101,56 @@ def swap_tools(agent, new_tools: List[Callable]):
         reg.register_tool(t)
 
 
+def trim_history(agent, max_turns: int = 3) -> int:
+    """Bound a live agent's conversation history to the last `max_turns` turns.
+
+    Without this, a long multi-turn run resends the entire transcript on every
+    call and token cost grows quadratically — the memory variant ends up far
+    more expensive than sending all tools every time.
+
+    Trims only at real user-turn boundaries (a user message carrying text rather
+    than a toolResult) so a toolUse/toolResult pair is never split, which the
+    Bedrock Converse API rejects. Returns the number of messages dropped.
+    """
+    messages = agent.messages
+    boundaries = [
+        i
+        for i, m in enumerate(messages)
+        if m.get("role") == "user"
+        and not any("toolResult" in block for block in m.get("content", []))
+    ]
+    if len(boundaries) <= max_turns:
+        return 0
+
+    cut = boundaries[-max_turns]
+    del messages[:cut]
+    return cut
+
+
+_USAGE_KEYS = ("inputTokens", "outputTokens", "totalTokens")
+
+
+def usage_snapshot(agent) -> dict:
+    """Read an agent's lifetime accumulated token usage."""
+    metrics = getattr(agent, "event_loop_metrics", None)
+    if metrics is None:
+        return dict.fromkeys(_USAGE_KEYS, 0)
+    usage = metrics.accumulated_usage
+    return {k: usage.get(k, 0) for k in _USAGE_KEYS}
+
+
+def usage_delta(agent, before: dict) -> dict:
+    """Token usage for the call that just ran, given a pre-call snapshot.
+
+    `result.metrics.accumulated_usage` is the agent's *lifetime* counter, not a
+    per-call figure. A loop that builds a fresh Agent per query reads it as
+    per-query by accident; a loop that reuses one agent must difference it, or
+    summing across queries yields a triangular number instead of a total.
+    """
+    after = usage_snapshot(agent)
+    return {k: after[k] - before.get(k, 0) for k in _USAGE_KEYS}
+
+
 def get_scores(query: str, top_k: int = 10) -> List[dict]:
     """Get tool scores for debugging."""
     emb = _embed([query])
