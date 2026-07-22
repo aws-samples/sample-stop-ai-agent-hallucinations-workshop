@@ -23,7 +23,7 @@ Deploy AgentCore agent with long-term memory that recalls user preferences acros
 
 3. **Tests cross-session memory recall**:
    - **Session A:** User shares name and preferences
-   - **Wait 60s:** AgentCore extracts strategies asynchronously
+   - **Wait for records:** Poll until AgentCore has extracted facts and preferences
    - **Session B:** New session, same actor → agent recalls from long-term memory
 
 ## Files
@@ -32,6 +32,8 @@ Deploy AgentCore agent with long-term memory that recalls user preferences acros
 |------|---------|
 | `deploy_memory_agent.ipynb` | Create Memory resource, deploy agent, test cross-session recall |
 | `booking_agent_with_memory.py` | Strands agent with AgentCore Memory integration |
+| `memory_check.py` | Wait for extracted fact and preference records before testing LTM |
+| `test_memory_check.py` | Offline tests for the readiness check |
 | `agent_requirements.txt` | Python dependencies (strands-agents, bedrock-agentcore-starter-toolkit) |
 
 ## Key Differences from Module 6
@@ -80,6 +82,10 @@ agent = Agent(
 )
 ```
 
+The runtime reuses this agent only while both actor ID and session ID are
+unchanged. A new session creates a new memory session manager, which retrieves
+the actor's LTM instead of continuing the previous session's STM.
+
 **Actor ID** scopes memory by user (format: `user-{8-char-uuid}`). Same actor ID across sessions → shared memory. Passed via custom HTTP header:
 ```python
 'X-Amzn-Bedrock-AgentCore-Runtime-Custom-Actor-Id': user_id
@@ -92,7 +98,7 @@ Open `deploy_memory_agent.ipynb` and execute all cells. The notebook:
 2. Creates AgentCore Memory resource with strategies
 3. Deploys memory-enabled agent with `memory_mode="STM_AND_LTM"`
 4. Tests STM (same session)
-5. Waits 60s for strategy extraction
+5. Polls for extracted fact and preference records (up to 5 minutes)
 6. Tests LTM (different session, same actor)
 
 ## Expected Results
@@ -106,7 +112,7 @@ User: What's my loyalty number?
 Agent: Your loyalty number is HOTEL-12345.
 ```
 
-**Session B (LTM, 60s later):**
+**Session B (LTM, after records are ready):**
 ```
 User: Do you remember me? What's my name?
 Agent: Yes, I remember you! Your name is Alex.

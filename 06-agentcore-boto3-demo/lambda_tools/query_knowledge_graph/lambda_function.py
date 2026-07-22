@@ -31,7 +31,15 @@ def _get_driver():
         secret_data = json.loads(secret_string)
         password = secret_data.get("password", secret_string)  # Support both JSON and plain text secrets
         uri = f"bolt://{NEO4J_HOST}:7687"
-        _driver = GraphDatabase.driver(uri, auth=("neo4j", password))
+        # Bound both connect and acquisition (F15). Without connection_acquisition_timeout
+        # a blackholed host burns the 60s default, which can exceed the Lambda timeout
+        # with no human to interrupt it. Acquisition must be >= connect or the driver warns.
+        _driver = GraphDatabase.driver(
+            uri,
+            auth=("neo4j", password),
+            connection_timeout=3,
+            connection_acquisition_timeout=5,
+        )
     return _driver
 
 

@@ -10,6 +10,10 @@ controls:
         - post
     selector:
       path: output
+    # NOTE: evaluated with RE2, which has no lookahead or backreferences.
+    # The pattern therefore also matches the agent's own corrective reply when that
+    # reply restates the original total. This control cannot be made self-excluding
+    # by narrowing the regex; the demo bounds steer retries instead (MAX_STEERS).
     evaluator:
       name: regex
       config:
@@ -20,11 +24,12 @@ controls:
       steering_context:
         message: >
           The booking exceeds the hotel maximum of 10 guests per room.
-          Calculate how many rooms are needed (divide total guests by 10, rounding up).
-          Explain to the user that you are splitting the reservation into multiple rooms,
-          then immediately call book_hotel multiple times: fill rooms with 10 guests each
-          until all guests are accommodated. After all calls succeed, confirm the split
-          reservation with room details (e.g., "Reserved 2 rooms: 10 + 5 guests").
+          Split the reservation across multiple rooms: fill each room with 10 guests
+          until all guests are accommodated, so a party of 15 becomes one room of 10
+          and one room of 5. Call book_hotel once per room now, in a single turn,
+          before writing any further explanation. Book each room exactly once — do
+          not repeat a booking you have already made. Once every room is booked,
+          tell the user how many rooms were reserved and the occupancy of each.
     tags:
       - booking
       - steer

@@ -56,7 +56,7 @@ Two agents query the same 300 hotel FAQs with different approaches:
 
 - Python 3.9+
 - Neo4j Desktop with APOC plugin
-- OpenAI API key
+- AWS credentials with Amazon Bedrock access (us-east-1)
 
 ### 1. Install Dependencies
 
@@ -69,12 +69,9 @@ uv venv && uv pip install -r requirements.txt
 Create a `.env` file with your credentials:
 
 ```bash
-# OpenAI API Key (required)
-OPENAI_API_KEY=your_openai_api_key_here
-
 # Neo4j Configuration (required for Graph-RAG demo)
 NEO4J_URI=neo4j://127.0.0.1:7687
-NEO4J_USER=neo4j
+NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=your_neo4j_password_here
 ```
 
@@ -139,29 +136,32 @@ The demo creates **two agents** that query the same 300 hotel FAQs:
 rag_agent = Agent(
     name="RAG_Agent",
     tools=[search_faqs],  # FAISS similarity search
-    model=OpenAIModel("gpt-4o-mini")
+    model=BedrockModel(model_id="us.anthropic.claude-sonnet-5")
 )
 
 # Graph-RAG Agent - uses knowledge graph
 graph_agent = Agent(
     name="GraphRAG_Agent", 
     tools=[query_knowledge_graph],  # Cypher queries on Neo4j
-    model=OpenAIModel("gpt-4o-mini")
+    model=BedrockModel(model_id="us.anthropic.claude-sonnet-5")
 )
 ```
 
 ### How the Knowledge Graph is Built
 
-The graph is built **automatically** using `neo4j-graphrag` — no hardcoded schema:
+The graph is built automatically using `neo4j-graphrag` against the pinned
+schema in `graph_config.GRAPH_SCHEMA`. The schema keeps the graph aligned with
+the labels, properties, and relationships the agent is taught to query:
 
 ```python
 from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
+from graph_config import GRAPH_SCHEMA
 
-# No entities/relations defined — LLM discovers them from text
 kg_builder = SimpleKGPipeline(
     llm=llm,
     driver=neo4j_driver,
     embedder=embedder,
+    schema=GRAPH_SCHEMA,
     from_pdf=False,
     perform_entity_resolution=True,  # dedup similar entities
 )
@@ -171,11 +171,12 @@ await kg_builder.run_async(text=document_text)
 ```
 
 The LLM reads each document and:
-1. **Discovers entity types** (Hotel, Room, Amenity, Policy, Service)
-2. **Extracts relationships** (HAS_ROOM, OFFERS_AMENITY, HAS_POLICY)
+1. **Extracts schema-defined entities** (Hotel, Room, Amenity, Policy, Service)
+2. **Extracts schema-defined relationships** (HAS_ROOM, OFFERS_AMENITY, HAS_POLICY, PROVIDES_SERVICE)
 3. **Resolves duplicates** (merges similar entities into single nodes)
 
-If you add new documents with new entity types (Restaurant, Airport, etc.), the LLM discovers them automatically.
+If new documents require another entity type, update `GRAPH_SCHEMA` and the
+agent's query contract before rebuilding the graph.
 
 ## 📚 Technologies
 
@@ -195,7 +196,7 @@ If you add new documents with new entity types (Restaurant, Airport, etc.), the 
 
 **Graph build slow:** Each document takes ~30s (LLM extraction). 300 docs ≈ 2.5 hours. Run once.
 
-**API errors:** Check has valid `OPENAI_API_KEY`
+**API errors:** Check that AWS credentials are configured and have Amazon Bedrock access in `us-east-1`
 
 **Model alternatives:** All demos work with OpenAI, Anthropic, or Ollama — see [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/)
 
@@ -211,7 +212,11 @@ Research ([RAG-KG-IL, 2025](https://arxiv.org/pdf/2503.13514)) shows knowledge g
 
 ### Do I need to define a schema for the knowledge graph?
 
-No. The graph is built automatically using `neo4j-graphrag`'s `SimpleKGPipeline`. The LLM reads each document and discovers entity types (Hotel, Room, Amenity, Policy), extracts relationships, and resolves duplicates — no hardcoded schema required. New entity types are discovered automatically when you add new documents.
+For this demo, no additional schema work is required because the repository
+already provides `graph_config.GRAPH_SCHEMA`. `SimpleKGPipeline` uses that
+contract while the LLM extracts entities and relationships and resolves
+duplicates. Adding a new entity type requires updating the pinned schema and
+the agent's query contract; it is not discovered automatically.
 
 ### How long does it take to build the knowledge graph?
 

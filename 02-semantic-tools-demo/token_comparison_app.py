@@ -6,19 +6,25 @@ load_dotenv()
 
 from strands import Agent
 from enhanced_tools import ALL_TOOLS
-from registry import build_index, search_tools, swap_tools
+from registry import (
+    build_index,
+    search_tools,
+    swap_tools,
+    trim_history,
+    usage_delta,
+    usage_snapshot,
+)
+
+# Conversation turns the memory agent keeps. Unbounded history makes the memory
+# variant cost grow quadratically and lose to the traditional baseline outright.
+MEMORY_MAX_TURNS = 3
 
 # Model configuration — Amazon Bedrock (default, requires AWS credentials)
 # Strands Agents uses Bedrock by default. No extra import needed.
 # To use a specific Bedrock model, pass the model ID as a string:
-#   MODEL = "us.anthropic.claude-sonnet-4-20250514-v1:0"
+#   MODEL = "us.anthropic.claude-sonnet-5"
 #
-# To use a different provider (e.g., OpenAI), install the extra and configure:
-#   pip install "strands-agents[openai]"
-#   from strands.models.openai import OpenAIModel
-#   MODEL = OpenAIModel(model_id="gpt-4o-mini")
-#   (requires OPENAI_API_KEY env var — get one at https://platform.openai.com/api-keys)
-#
+# This demo is Bedrock-only and needs no other provider credentials.
 # See all providers: https://strandsagents.com/docs/user-guide/concepts/model-providers/
 
 PROMPT = "You are a travel assistant. Use the correct tool to answer questions."
@@ -30,16 +36,20 @@ TESTS = [
 ]
 
 def run_query_with_tokens(agent, query):
-    """Run query and extract token usage from Strands native metrics"""
+    """Run query and extract this call's token usage from Strands native metrics.
+
+    Differences the agent's lifetime counter rather than reading it directly, so
+    a reused agent reports per-query cost instead of a running total.
+    """
+    before = usage_snapshot(agent)
     result = agent(query)
 
-    # Use Strands native token counting
     if result.metrics:
-        usage = result.metrics.accumulated_usage
+        used = usage_delta(agent, before)
         return {
-            'input': usage['inputTokens'],
-            'output': usage['outputTokens'],
-            'total': usage['totalTokens'],
+            'input': used['inputTokens'],
+            'output': used['outputTokens'],
+            'total': used['totalTokens'],
             'estimated': False
         }
 
@@ -73,7 +83,8 @@ for query, _ in TESTS:
     print(f"  {query[:40]:40} | {tokens['total']:5} tokens{est}")
 
 # Test 3: Semantic + Memory
-print("\n[3/3] Semantic + Memory - Single agent, swap tools...")
+print(f"\n[3/3] Semantic + Memory - Single agent, swap tools, "
+      f"history bounded to {MEMORY_MAX_TURNS} turns...")
 initial_tools = search_tools(TESTS[0][0], top_k=3)
 memory_agent = Agent(tools=initial_tools, system_prompt=PROMPT)
 mem_tokens = []
@@ -81,6 +92,7 @@ mem_tokens = []
 for query, _ in TESTS:
     selected = search_tools(query, top_k=3)
     swap_tools(memory_agent, selected)
+    trim_history(memory_agent, max_turns=MEMORY_MAX_TURNS)
     tokens = run_query_with_tokens(memory_agent, query)
     mem_tokens.append(tokens)
     est = " (est)" if tokens.get('estimated') else ""
@@ -110,13 +122,20 @@ if trad_total > 0:
         m = mem_tokens[i]['total']
         print(f"{query[:44]:<45} {t:8} {s:8} {m:8} {t-m:8}")
     
-    print(f"\n✅ Key Finding:")
+    print(f"\n✅ Key Finding (measured this run, not a cited figure):")
     print(f"   • Traditional sends {len(ALL_TOOLS)} tools every query")
     print(f"   • Semantic sends only 3 tools per query")
     print(f"   • Semantic saves {savings_sem} tokens ({100*savings_sem/trad_total:.1f}%) vs Traditional")
-    print(f"   • Memory approach accumulates conversation history")
-    print(f"   • Memory uses {mem_total - sem_total} MORE tokens than Semantic (conversation context)")
-    print(f"   • But still saves {savings_mem} tokens ({100*savings_mem/trad_total:.1f}%) vs Traditional")
+    print(f"   • Memory keeps conversation context, bounded to {MEMORY_MAX_TURNS} turns")
+    print(f"   • Memory uses {abs(mem_total - sem_total)} "
+          f"{'MORE' if mem_total > sem_total else 'FEWER'} tokens than Semantic")
+    if savings_mem > 0:
+        print(f"   • Memory still saves {savings_mem} tokens "
+              f"({100*savings_mem/trad_total:.1f}%) vs Traditional")
+    else:
+        print(f"   • Memory COSTS {-savings_mem} tokens MORE than Traditional "
+              f"({100*savings_mem/trad_total:.1f}%) — conversation context "
+              f"outweighs the tool-schema saving at this turn count")
     
     if trad_tokens[0].get('estimated'):
         print(f"\n⚠️  Note: Token counts are estimated")

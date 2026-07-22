@@ -22,7 +22,7 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 | Approach | Hallucination Risk | Retrieval Method | Best For |
 |---|---|---|---|
 | Standard RAG (vector) | High — returns similar content even when irrelevant | Cosine similarity | General Q&A |
-| Graph-RAG (Neo4j) | 73% lower — grounded in entity relationships | Graph traversal + Cypher | Structured domains (hotels, products, finance) |
+| Graph-RAG (Neo4j) | 73% lower per RAG-KG-IL, arXiv 2503.13514; grounded in entity relationships | Graph traversal + Cypher | Structured domains (hotels, products, finance) |
 
 > **Key insight:** Vector search always returns *something similar*, even when the answer doesn't exist in the database — causing fabrication. Graph-RAG returns only what's explicitly connected in the knowledge graph.
 
@@ -32,8 +32,8 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 | # | Demo | What It Solves | Key Result | Stack |
 |:-:|------|----------------|------------|-------|
-| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | 73% fewer hallucinations with knowledge graphs | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
-| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks, token waste at scale (29 tools) | 89% token reduction, higher accuracy | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Embeddings](https://img.shields.io/badge/Embeddings-teal?style=flat) |
+| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | 73% fewer hallucinations with knowledge graphs, per RAG-KG-IL, arXiv 2503.13514 | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
+| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks, token waste at scale (29 tools) | 74% fewer tokens over 24 queries, accuracy unchanged within noise | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Embeddings](https://img.shields.io/badge/Embeddings-teal?style=flat) |
 | 03 | [Multi-Agent Validation](./03-multiagent-demo/) | Undetected hallucinations, fabricated responses | Executor-Validator-Critic cross-check pipeline | ![Swarm](https://img.shields.io/badge/Swarm-green?style=flat) |
 | 04 | [Neurosymbolic Guardrails](./04-neurosymbolic-demo/) | Agents ignoring business rules in prompts | Symbolic rules enforced via lifecycle hooks | ![Hooks](https://img.shields.io/badge/Hooks-purple?style=flat) |
 | 05 | [Agent Control Steering](./05-steering-demo/) | Hard-blocking stops the task instead of fixing it | Agent self-corrects instead of failing | ![Agent Control](https://img.shields.io/badge/Agent_Control-orange?style=flat) |
@@ -61,7 +61,7 @@ Each demo builds on the previous one. You can run any demo independently, but th
 
 - Python 3.9+
 - [uv](https://docs.astral.sh/uv/) package manager
-- AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access (Claude Sonnet 4 enabled in your region)
+- AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access (Claude Sonnet 5 enabled in your region)
 
 ### Run Any Demo
 
@@ -75,6 +75,34 @@ uv run <main_script>.py
 ```
 
 Each demo README has specific setup instructions and prerequisites.
+
+### Run Notebooks as Tests
+
+The shared notebook runner uses `nbconvert` to execute source notebooks without
+modifying them. It creates its own cached environment through `uv`, writes
+executed notebooks to a temporary directory, and exits nonzero if a cell raises
+an error:
+
+```bash
+uv run setup/run_notebooks.py              # Labs 00-05
+uv run setup/run_notebooks.py --labs 4     # One lab
+uv run setup/run_notebooks.py --labs 2-5   # A range
+```
+
+Labs 06 and 07 deploy AWS resources and require `--include-deploy`. Lab 08
+deletes tagged workshop resources and requires `--include-cleanup`. See
+[`setup/README.md`](setup/README.md) for the complete command reference.
+
+### Notebook Setup (nbstripout)
+
+This repository strips notebook output on commit through a git filter declared in `.gitattributes` (`*.ipynb filter=nbstripout diff=ipynb`). Register the filter once after cloning, or every `.ipynb` checkout runs against an undefined filter:
+
+```bash
+pip install nbstripout
+nbstripout --install
+```
+
+Run both commands from the repository root. `nbstripout --install` writes the `filter.nbstripout` entries into your local git config so the `.gitattributes` rule resolves.
 
 ### Neo4j Setup (Demo 01)
 
@@ -109,7 +137,7 @@ Yes. The patterns (Graph-RAG, semantic tool filtering, multi-agent validation, n
 
 ### Do I need an AWS account to run the demos?
 
-Yes. All demos use Amazon Bedrock (Claude Sonnet 4) as the default LLM provider. You need an AWS account with Bedrock access enabled in your region.
+Yes. All demos use Amazon Bedrock (Claude Sonnet 5) as the default LLM provider. You need an AWS account with Bedrock access enabled in your region.
 
 ### How long does it take to run each demo?
 
@@ -117,13 +145,13 @@ Demos 02-05 run in under 5 minutes. Demo 01 has a lite mode (30 docs, ~15 minute
 
 ### What LLM providers are supported?
 
-All demos default to Amazon Bedrock (Claude Sonnet 4) but work with any provider supported by Strands Agents: Anthropic API, OpenAI, Ollama (local models), or any OpenAI-compatible endpoint. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
+All demos default to Amazon Bedrock (Claude Sonnet 5) but work with any provider supported by Strands Agents: Anthropic API, OpenAI, Ollama (local models), or any OpenAI-compatible endpoint. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
 
 ---
 
 ## Common Issues and How to Fix Them
 
-**Bedrock access denied:** Ensure the model (`us.anthropic.claude-sonnet-4-5` or similar) is enabled in your region via the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess).
+**Bedrock access denied:** Ensure the model (`us.anthropic.claude-sonnet-5` or similar) is enabled in your region via the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess).
 
 **Neo4j connection fails (demo 01):** Verify `NEO4J_URI`, `NEO4J_USERNAME`, and `NEO4J_PASSWORD` are set in your `.env` file and that APOC is enabled on your Aura instance.
 

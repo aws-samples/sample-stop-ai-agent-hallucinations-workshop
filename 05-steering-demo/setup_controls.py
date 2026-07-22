@@ -48,6 +48,11 @@ CONTROLS = [
                 "stages": ["post"],
             },
             "selector": {"path": "output"},
+            # Evaluated with RE2, which supports no lookahead or backreferences.
+            # This pattern therefore also matches the agent's own corrective reply
+            # whenever that reply restates the original total, so the control cannot
+            # be made self-excluding by narrowing the regex. The demo bounds steer
+            # retries instead — see MAX_STEERS in demo_hooks_vs_control.py.
             "evaluator": {
                 "name": "regex",
                 "config": {"pattern": r"(1[1-9]|[2-9]\d)\s*guest"},
@@ -58,10 +63,13 @@ CONTROLS = [
                 "steering_context": {
                     "message": (
                         "The booking exceeds the hotel maximum of 10 guests per room. "
-                        "Do NOT describe or explain — immediately call book_hotel twice: "
-                        "first call with guests=10, second call with guests=5. "
-                        "After both calls succeed, tell the user their reservation was split "
-                        "into two rooms (10 + 5 guests) at the same hotel and dates."
+                        "Split the reservation across multiple rooms: fill each room with "
+                        "10 guests until all guests are accommodated, so a party of 15 "
+                        "becomes one room of 10 and one room of 5. Call book_hotel once "
+                        "per room now, in a single turn, before writing any further "
+                        "explanation. Book each room exactly once — do not repeat a "
+                        "booking you have already made. Once every room is booked, tell "
+                        "the user how many rooms were reserved and the occupancy of each."
                     )
                 },
             },
@@ -150,7 +158,7 @@ async def setup():
 
         print(f"\nSetup complete — {len(control_ids)} controls attached to {AGENT_NAME}")
         print("\nRun the demo:")
-        print("  uv run test_hooks_vs_control.py")
+        print("  uv run demo_hooks_vs_control.py")
 
 
 if __name__ == "__main__":
