@@ -53,7 +53,7 @@ def _inject_local_controls() -> None:
 # Model configuration — Amazon Bedrock (default, requires AWS credentials)
 # Strands Agents uses Bedrock by default. No extra import needed.
 # To use a specific Bedrock model, pass the model ID as a string:
-#   MODEL = "us.anthropic.claude-sonnet-4-20250514-v1:0"
+#   MODEL = "global.anthropic.claude-sonnet-4-6"
 #
 # To use a different provider (e.g., OpenAI), install the extra and configure:
 #   pip install "strands-agents[openai]"

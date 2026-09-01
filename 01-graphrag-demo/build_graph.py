@@ -34,7 +34,7 @@ async def build_graph():
 
     # LLM and embedder — Amazon Bedrock (no OpenAI API key needed)
     llm = BedrockLLM(
-        model_id="us.anthropic.claude-sonnet-4-20250514-v1:0",
+        model_id="global.anthropic.claude-sonnet-4-6",
         region_name=os.environ.get("AWS_REGION", "us-east-1"),
         temperature=0,
     )

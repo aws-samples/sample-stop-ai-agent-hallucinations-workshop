@@ -53,7 +53,7 @@ class BedrockLLM(LLMInterface):
 
     def __init__(
         self,
-        model_id: str = "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        model_id: str = "global.anthropic.claude-sonnet-4-6",
         region_name: str = os.environ.get("AWS_REGION", "us-east-1"),
         temperature: float = 0,
         max_tokens: int = 4096,
