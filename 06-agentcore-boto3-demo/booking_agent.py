@@ -14,7 +14,6 @@ from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp.mcp_client import MCPClient
-from mcp.client.streamable_http import streamablehttp_client
 
 # Model configuration — Amazon Bedrock (default, requires AWS credentials)
 # Strands Agents uses Bedrock by default. No extra import needed.
@@ -135,7 +134,7 @@ def invoke(payload, context=None):
     model = BedrockModel(region_name=_region)
     hooks = [BookingGuardrailsHook()]
 
-    mcp_client = MCPClient(lambda: streamablehttp_client(GATEWAY_URL))
+    mcp_client = MCPClient(url=GATEWAY_URL)
 
     with mcp_client:
         tools = mcp_client.list_tools_sync()

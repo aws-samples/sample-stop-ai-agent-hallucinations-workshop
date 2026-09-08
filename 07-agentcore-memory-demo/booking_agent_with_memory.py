@@ -22,7 +22,6 @@ from bedrock_agentcore.memory.integrations.strands.session_manager import AgentC
 from strands import Agent
 from strands.models import BedrockModel
 from strands.tools.mcp.mcp_client import MCPClient
-from mcp.client.streamable_http import streamablehttp_client
 
 # --- Configuration from environment variables ---
 
@@ -141,7 +140,7 @@ def get_or_create_agent(actor_id: str, session_id: str):
     if _agent is None:
         model = BedrockModel(region_name=_region)
         hooks = [BookingGuardrailsHook()]
-        mcp_client = MCPClient(lambda: streamablehttp_client(GATEWAY_URL))
+        mcp_client = MCPClient(url=GATEWAY_URL)
 
         # List tools from Gateway
         with mcp_client:
