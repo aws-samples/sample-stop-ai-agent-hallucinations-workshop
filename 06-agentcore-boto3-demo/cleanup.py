@@ -21,21 +21,30 @@ agentcore = boto3.client("bedrock-agentcore-control", region_name=REGION)
 s3 = boto3.client("s3", region_name=REGION)
 codebuild = boto3.client("codebuild", region_name=REGION)
 ecr = boto3.client("ecr", region_name=REGION)
+logs = boto3.client("logs", region_name=REGION)
 
-ECR_REPO_NAME = "bedrock-agentcore-hotelbookingagent"
-CODEBUILD_PROJECT = f"{ECR_REPO_NAME}-builder"
+ECR_REPO_NAMES = [
+    "bedrock-agentcore-hotelbookingagent",
+    "bedrock-agentcore-hotelbookingagentwithmemory",
+]
+CODEBUILD_PROJECTS = [f"{repo}-builder" for repo in ECR_REPO_NAMES]
 CODEBUILD_ROLE = f"AmazonBedrockAgentCoreSDKCodeBuild-{REGION}-{ACCOUNT_ID[:8]}"
 
-RUNTIME_NAME = "HotelBookingAgent"
+RUNTIME_NAMES = ["HotelBookingAgent", "HotelBookingAgentWithMemory"]
+MEMORY_NAME = "workshop_HotelBookingMemory"
 GATEWAY_NAME = "HotelBookingGateway"
 LAMBDA_TOOLS = [
     "search_available_hotels", "book_hotel", "get_booking",
     "process_payment", "confirm_booking", "cancel_booking",
-    "validate_booking_rules",
+    "validate_booking_rules", "query_knowledge_graph",
 ]
 TABLE_NAMES = ["workshop-Hotels", "workshop-Bookings", "workshop-SteeringRules"]
 ROLE_NAMES = ["workshop-LambdaExecutionRole", "workshop-AgentCoreExecutionRole"]
-BUCKET_NAME = f"workshop-agent-code-{ACCOUNT_ID}-{REGION}"
+BUCKET_NAMES = [
+    f"workshop-agent-code-{ACCOUNT_ID}-{REGION}",
+    # Created by the AgentCore starter toolkit to stage CodeBuild sources
+    f"bedrock-agentcore-codebuild-sources-{ACCOUNT_ID}-{REGION}",
+]
 
 
 def cleanup():
@@ -43,12 +52,12 @@ def cleanup():
     print("CLEANUP: Removing ALL workshop resources")
     print("=" * 60)
 
-    # 1. Delete AgentCore Runtime
+    # 1. Delete AgentCore Runtimes (Module 6 and Module 7)
     print("\n1. Deleting AgentCore Runtimes...")
     try:
         runtimes = agentcore.list_agent_runtimes().get("agentRuntimes", [])
         for rt in runtimes:
-            if rt.get("agentRuntimeName") == RUNTIME_NAME:
+            if rt.get("agentRuntimeName") in RUNTIME_NAMES:
                 rid = rt["agentRuntimeId"]
                 try:
                     agentcore.delete_agent_runtime(agentRuntimeId=rid)
@@ -112,6 +121,21 @@ def cleanup():
     except Exception as e:
         print(f"  Skip: {e}")
 
+    # 2b. Delete AgentCore Memory (Module 7)
+    print("\n2b. Deleting AgentCore Memory...")
+    try:
+        memories = agentcore.list_memories().get("memories", [])
+        for mem in memories:
+            mem_id = mem.get("id", "")
+            if mem_id.startswith(MEMORY_NAME):
+                try:
+                    agentcore.delete_memory(memoryId=mem_id)
+                    print(f"  Deleted memory: {mem_id}")
+                except Exception as e:
+                    print(f"  Error deleting memory {mem_id}: {e}")
+    except Exception as e:
+        print(f"  Skip: {e}")
+
     # 3. Delete Lambda functions
     print("\n3. Deleting Lambda functions...")
     for tool_name in LAMBDA_TOOLS:
@@ -155,50 +179,53 @@ def cleanup():
         except Exception as e:
             print(f"  Error: {table_name}: {e}")
 
-    # 6. Delete S3 bucket
-    print("\n6. Deleting S3 bucket...")
-    try:
-        # Delete all objects first
-        paginator = s3.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=BUCKET_NAME):
-            for obj in page.get("Contents", []):
-                s3.delete_object(Bucket=BUCKET_NAME, Key=obj["Key"])
-        # Delete versions if versioned
+    # 6. Delete S3 buckets (agent code + CodeBuild sources)
+    print("\n6. Deleting S3 buckets...")
+    for bucket_name in BUCKET_NAMES:
         try:
-            versions = s3.list_object_versions(Bucket=BUCKET_NAME)
-            for v in versions.get("Versions", []):
-                s3.delete_object(Bucket=BUCKET_NAME, Key=v["Key"], VersionId=v["VersionId"])
-            for dm in versions.get("DeleteMarkers", []):
-                s3.delete_object(Bucket=BUCKET_NAME, Key=dm["Key"], VersionId=dm["VersionId"])
-        except Exception:
-            print("  Note: bucket versioning not configured")
-        s3.delete_bucket(Bucket=BUCKET_NAME)
-        print(f"  Deleted {BUCKET_NAME}")
-    except s3.exceptions.NoSuchBucket:
-        pass
-    except Exception as e:
-        print(f"  Error: {e}")
-
-    # 7. Delete CodeBuild project
-    print("\n7. Deleting CodeBuild project...")
-    try:
-        codebuild.delete_project(name=CODEBUILD_PROJECT)
-        print(f"  Deleted {CODEBUILD_PROJECT}")
-    except Exception as e:
-        if "does not exist" in str(e) or "not found" in str(e).lower():
+            # Delete all objects first
+            paginator = s3.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=bucket_name):
+                for obj in page.get("Contents", []):
+                    s3.delete_object(Bucket=bucket_name, Key=obj["Key"])
+            # Delete versions if versioned
+            try:
+                versions = s3.list_object_versions(Bucket=bucket_name)
+                for v in versions.get("Versions", []):
+                    s3.delete_object(Bucket=bucket_name, Key=v["Key"], VersionId=v["VersionId"])
+                for dm in versions.get("DeleteMarkers", []):
+                    s3.delete_object(Bucket=bucket_name, Key=dm["Key"], VersionId=dm["VersionId"])
+            except Exception:
+                print("  Note: bucket versioning not configured")
+            s3.delete_bucket(Bucket=bucket_name)
+            print(f"  Deleted {bucket_name}")
+        except s3.exceptions.NoSuchBucket:
             pass
-        else:
-            print(f"  Error: {e}")
+        except Exception as e:
+            print(f"  Error: {bucket_name}: {e}")
 
-    # 8. Delete ECR repository (and all images)
-    print("\n8. Deleting ECR repository...")
-    try:
-        ecr.delete_repository(repositoryName=ECR_REPO_NAME, force=True)
-        print(f"  Deleted {ECR_REPO_NAME}")
-    except ecr.exceptions.RepositoryNotFoundException:
-        pass
-    except Exception as e:
-        print(f"  Error: {e}")
+    # 7. Delete CodeBuild projects (Module 6 and Module 7)
+    print("\n7. Deleting CodeBuild projects...")
+    for project_name in CODEBUILD_PROJECTS:
+        try:
+            codebuild.delete_project(name=project_name)
+            print(f"  Deleted {project_name}")
+        except Exception as e:
+            if "does not exist" in str(e) or "not found" in str(e).lower():
+                pass
+            else:
+                print(f"  Error: {project_name}: {e}")
+
+    # 8. Delete ECR repositories and all images (Module 6 and Module 7)
+    print("\n8. Deleting ECR repositories...")
+    for repo_name in ECR_REPO_NAMES:
+        try:
+            ecr.delete_repository(repositoryName=repo_name, force=True)
+            print(f"  Deleted {repo_name}")
+        except ecr.exceptions.RepositoryNotFoundException:
+            pass
+        except Exception as e:
+            print(f"  Error: {repo_name}: {e}")
 
     # 9. Delete CodeBuild IAM role
     print("\n9. Deleting CodeBuild IAM role...")
@@ -219,8 +246,29 @@ def cleanup():
     except Exception as e:
         print(f"  Skip: {e}")
 
-    # 10. Delete starter toolkit config (contains old runtime IDs)
-    print("\n10. Deleting starter toolkit config...")
+    # 10. Delete CloudWatch log groups (Lambda + AgentCore)
+    print("\n10. Deleting CloudWatch log groups...")
+    log_group_prefixes = [
+        "/aws/lambda/hotel-booking-",
+        "/aws/bedrock-agentcore/",
+        "/aws/vendedlogs/bedrock-agentcore/",
+    ]
+    for prefix in log_group_prefixes:
+        try:
+            paginator = logs.get_paginator("describe_log_groups")
+            for page in paginator.paginate(logGroupNamePrefix=prefix):
+                for lg in page.get("logGroups", []):
+                    name = lg["logGroupName"]
+                    try:
+                        logs.delete_log_group(logGroupName=name)
+                        print(f"  Deleted {name}")
+                    except Exception as e:
+                        print(f"  Error: {name}: {e}")
+        except Exception as e:
+            print(f"  Skip: {e}")
+
+    # 11. Delete starter toolkit config (contains old runtime IDs)
+    print("\n11. Deleting starter toolkit config...")
     import glob
     for config_file in glob.glob(".bedrock_agentcore*.yaml") + glob.glob(os.path.expanduser("~/.bedrock_agentcore*.yaml")):
         try:

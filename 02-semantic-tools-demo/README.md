@@ -30,7 +30,7 @@ Research ([Internal Representations, 2025](https://arxiv.org/abs/2601.05214)) id
 
 Semantic tool selection filters tools **before** the agent sees them:
 
-![Semantic tool selection flow diagram](images/semantic-tool-selection.png)
+![Flow diagram showing user query being embedded into a vector, FAISS index searching for top 3 most similar tool descriptions by cosine similarity, and filtered tools being injected into the agent instead of all 29 original tools](images/semantic-tool-selection.png)
 
 **Results**: Improved accuracy, fewer tokens
 
