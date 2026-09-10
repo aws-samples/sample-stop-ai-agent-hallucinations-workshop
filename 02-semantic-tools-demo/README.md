@@ -51,7 +51,7 @@ swap_tools(agent, new_tools)  # agent.messages preserved
 
 **3. Runtime Tool Discovery**
 - Agent picks up tool changes automatically at each event loop
-- No manual refresh needed—just modify `tool_registry`
+- No manual refresh needed, modify `tool_registry` and rerun
 - Zero-downtime tool updates in production
 
 Traditional frameworks require agent recreation to change tools, losing conversation state. Strands maintains memory while tools change dynamically.
@@ -63,14 +63,14 @@ Learn more: [Strands Tool Registry](https://strandsagents.com/docs/user-guide/co
 ### Prerequisites
 
 - Python 3.9+
-- [Strands Agents](https://strandsagents.com) — AI agent framework
+- [Strands Agents](https://strandsagents.com): AI agent framework
 - Optional: Neo4j connection for real hotel data (from `../01-graphrag-demo`)
 
 ### Model
 
 This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Agents uses Bedrock when no model is specified.
 
-You can swap the model for any provider supported by Strands — Amazon Bedrock, Anthropic, Ollama, etc. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
+You can swap the model for any provider supported by Strands: Amazon Bedrock, Anthropic, Ollama, and others. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
 
 ### Configure Environment Variables
 
@@ -221,14 +221,14 @@ These tools provide **ground truth** for objective accuracy measurement.
 
 ## Further Reading
 
-- [Internal Representations as Indicators of Hallucinations in Agent Tool Selection](https://arxiv.org/abs/2601.05214) — the source of the five-type taxonomy above. The paper detects tool-calling hallucinations from a model's internal representations; it does not evaluate embedding-based pre-filtering, so none of the numbers in this demo come from it.
-- [Semantic tool selection guide](https://www.rconnect.tech/blog/semantic-tool-selection-guide) — community observation reporting a similar order of token reduction.
+- [Internal Representations as Indicators of Hallucinations in Agent Tool Selection](https://arxiv.org/abs/2601.05214): the source of the five-type taxonomy above. The paper detects tool-calling hallucinations from a model's internal representations; it does not evaluate embedding-based pre-filtering, so none of the numbers in this demo come from it.
+- [Semantic tool selection guide](https://www.rconnect.tech/blog/semantic-tool-selection-guide): community observation reporting a similar order of token reduction.
 
 ## Frequently Asked Questions
 
 ### How much does semantic tool selection reduce token usage?
 
-It reduces them on every call, and this demo measures by how much rather than asserting a figure. Instead of sending all 31 tool descriptions on every query, FAISS-based filtering sends the top 3. The saving repeats on every query and compounds across multi-turn conversations. Run `token_comparison_app.py` to get the number for your own tool set — it depends entirely on how many tools you have and how long their docstrings are.
+It reduces them on every call, and this demo measures by how much rather than asserting a figure. Instead of sending all 31 tool descriptions on every query, FAISS-based filtering sends the top 3. The saving repeats on every query and compounds across multi-turn conversations. Run `token_comparison_app.py` to get the number for your own tool set. It depends entirely on how many tools you have and how long their docstrings are.
 
 ### Does filtering tools break conversation memory?
 
@@ -236,14 +236,14 @@ No. Strands Agents' `swap_tools()` function changes the available tools at runti
 
 ### Can I use semantic tool selection with other agent frameworks?
 
-Yes. The core pattern — embedding tool descriptions with FAISS and filtering by cosine similarity before the LLM sees them — is framework-agnostic. This demo uses Strands Agents; the same pattern carries over to any framework that supports custom tool calling. Amazon Bedrock AgentCore Gateway also provides built-in [MCP semantic routing](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-using-mcp-semantic-search.html?trk=87c4c426-cddf-4799-a299-273337552ad8&sc_channel=el) for production workloads.
+Yes. The core pattern, embedding tool descriptions with FAISS and filtering by cosine similarity before the LLM sees them, is framework-agnostic. This demo uses Strands Agents; the same pattern carries over to any framework that supports custom tool calling. Amazon Bedrock AgentCore Gateway also provides built-in [MCP semantic routing](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-using-mcp-semantic-search.html?trk=87c4c426-cddf-4799-a299-273337552ad8&sc_channel=el) for production workloads.
 
 ---
 
 ## Navigation
 
 - **Previous:** [Demo 01 - Graph-RAG vs RAG](../01-graphrag-demo/)
-- **Next:** [Demo 03 - Multi-Agent Validation](../03-multiagent-demo/) — Cross-validate tool selections with Executor → Validator → Critic
+- **Next:** [Demo 03 - Multi-Agent Validation](../03-multiagent-demo/): cross-validate tool selections with Executor → Validator → Critic
 
 ---
 

@@ -36,13 +36,13 @@ Neurosymbolic integration combines:
 
 ### Prerequisites
 - Python 3.9+
-- [Strands Agents](https://strandsagents.com) — AI agent framework
+- [Strands Agents](https://strandsagents.com): AI agent framework
 
 ### Model
 
 This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Agents uses Bedrock when no model is specified.
 
-You can swap the model for any provider supported by Strands — Amazon Bedrock, Anthropic, Ollama, etc. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
+You can swap the model for any provider supported by Strands: Amazon Bedrock, Anthropic, Ollama, and others. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
 
 ### Setup
 
@@ -119,9 +119,9 @@ The agent uses the LLM to understand "Confirm booking BK001 for me", but the hoo
 
 | Approach | Enforcement | Bypassable? | Maintainability |
 |----------|------------|:-----------:|-----------------|
-| **Prompt engineering** | Instructions in system prompt | Yes — LLM can ignore text | Rules mixed with instructions |
-| **Tool docstrings** | Constraints in tool descriptions | Yes — processed as text, not code | Scattered across tools |
-| **Neurosymbolic hooks** | Python lambdas executed before tool calls | No — code runs regardless of LLM output | Centralized in `rules.py` |
+| **Prompt engineering** | Instructions in system prompt | Yes, the LLM can ignore text | Rules mixed with instructions |
+| **Tool docstrings** | Constraints in tool descriptions | Yes, processed as text and not code | Scattered across tools |
+| **Neurosymbolic hooks** | Python lambdas executed before tool calls | No, the code runs regardless of LLM output | Centralized in `rules.py` |
 
 The key insight: prompts are suggestions, but code is enforcement. Hooks intercept tool calls *before* execution and validate parameters against symbolic rules that the LLM cannot bypass.
 
@@ -129,7 +129,7 @@ The key insight: prompts are suggestions, but code is enforcement. Hooks interce
 
 ### What is neurosymbolic AI in the context of agent guardrails?
 
-Neurosymbolic AI combines neural networks (the LLM that understands natural language and selects tools) with symbolic reasoning (executable Python rules that validate constraints). In this demo, the LLM handles user intent while symbolic rules in `rules.py` enforce business logic like maximum guest limits, valid date ranges, and payment prerequisites — creating verifiable, deterministic guardrails.
+Neurosymbolic AI combines neural networks (the LLM that understands natural language and selects tools) with symbolic reasoning (executable Python rules that validate constraints). In this demo, the LLM handles user intent while symbolic rules in `rules.py` enforce business logic like maximum guest limits, valid date ranges, and payment prerequisites, creating verifiable, deterministic guardrails.
 
 ### Why not put business rules in the prompt or tool docstrings?
 
@@ -137,7 +137,7 @@ Research ([ATA: Autonomous Trustworthy Agents, 2024](https://arxiv.org/html/2510
 
 ### Can I use this pattern with other agent frameworks?
 
-Yes. Any framework that supports lifecycle hooks or middleware can implement the same neurosymbolic pattern. The core idea — intercept tool calls and validate parameters against symbolic rules — is framework-agnostic.
+Yes. Any framework that supports lifecycle hooks or middleware can implement the same neurosymbolic pattern. The core idea, intercepting tool calls and validating parameters against symbolic rules, is framework-agnostic.
 
 ## References
 
@@ -150,7 +150,7 @@ Yes. Any framework that supports lifecycle hooks or middleware can implement the
 ## Navigation
 
 - **Previous:** [Demo 03 - Multi-Agent Validation](../03-multiagent-demo/)
-- **Next:** [Demo 05 - Agent Control Steering](../05-steering-demo/) — Self-correct instead of blocking
+- **Next:** [Demo 05 - Agent Control Steering](../05-steering-demo/): self-correct instead of blocking
 
 ---
 

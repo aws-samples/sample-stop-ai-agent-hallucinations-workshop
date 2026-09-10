@@ -31,13 +31,13 @@ Multiple specialized agents that validate each other, enhanced with Graph-RAG:
 
 ### Prerequisites
 - Python 3.9+
-- [Strands Agents](https://strandsagents.com) — AI agent framework
+- [Strands Agents](https://strandsagents.com): AI agent framework
 
 ### Model
 
 This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Agents uses Bedrock when no model is specified.
 
-You can swap the model for any provider supported by Strands — Amazon Bedrock, Anthropic, Ollama, etc. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
+You can swap the model for any provider supported by Strands: Amazon Bedrock, Anthropic, Ollama, and others. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
 
 ### Setup
 ```bash
@@ -84,7 +84,7 @@ The tests include:
 
 ## How It Works
 
-**Strands Agents makes this simple**: define what each agent does, and `Swarm` handles all coordination — autonomous handoffs, shared context, explicit `COMPLETED`/`FAILED` status — with no custom orchestration code.
+**Strands Agents handles the coordination**: you define what each agent does, and `Swarm` provides autonomous handoffs, shared context, and explicit `COMPLETED`/`FAILED` status, with no custom orchestration code.
 
 ### Basic Multi-Agent
 ```python
@@ -203,7 +203,7 @@ This demo uses Strands Agents Swarm. Similar multi-agent patterns can be impleme
 ## Navigation
 
 - **Previous:** [Demo 02 - Semantic Tool Selection](../02-semantic-tools-demo/)
-- **Next:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/) — Enforce business rules the LLM cannot bypass
+- **Next:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/): enforce business rules the LLM cannot bypass
 
 ---
 

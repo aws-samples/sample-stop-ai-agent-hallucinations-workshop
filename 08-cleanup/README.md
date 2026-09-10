@@ -22,10 +22,10 @@ Running `cleanup.ipynb` removes:
 
 ## What Does NOT Get Deleted
 
-- **Neo4j infrastructure** — Code Editor EC2 or Central Neo4j ECS stack from Module 1
+- **Neo4j infrastructure**: Code Editor EC2 or Central Neo4j ECS stack from Module 1
   - Delete via AWS Console → CloudFormation → Delete Stack
-- **S3 buckets** — Workshop Studio assets bucket
-- **CloudWatch Logs** — Log groups remain until manually deleted
+- **S3 buckets**: Workshop Studio assets bucket
+- **CloudWatch Logs**: log groups remain until manually deleted
 
 ## How to Run
 
@@ -36,10 +36,10 @@ Open `cleanup.ipynb` and execute all cells in order. Each step reports:
 
 ## Safety Features
 
-- **No `rm -rf` or destructive shell commands** — all deletion via boto3 API calls
-- **Idempotent** — safe to run multiple times
-- **Granular** — each resource type in a separate cell, run individually if needed
-- **Error handling** — continues even if some resources don't exist
+- **No `rm -rf` or destructive shell commands**: all deletion goes through boto3 API calls
+- **Idempotent**: safe to run multiple times
+- **Granular**: each resource type in a separate cell, run individually if needed
+- **Error handling**: continues even if some resources don't exist
 
 ## Estimated Time
 

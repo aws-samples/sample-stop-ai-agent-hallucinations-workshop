@@ -7,7 +7,7 @@
 [![License: MIT-0](https://img.shields.io/badge/License-MIT--0-green.svg)](LICENSE)
 [![Last Updated](https://img.shields.io/badge/Updated-March_2026-brightgreen.svg?style=flat)]()
 
-**AI agent hallucinations** occur when agents fabricate statistics, pick wrong tools, ignore business rules, or claim success when operations fail. This workshop provides 5 hands-on techniques — Graph-RAG, semantic tool selection, multi-agent validation, neurosymbolic guardrails, and agent steering — plus two production deployment demos on Amazon Bedrock AgentCore.
+**AI agent hallucinations** occur when agents fabricate statistics, pick wrong tools, ignore business rules, or claim success when operations fail. This workshop provides 5 hands-on techniques (Graph-RAG, semantic tool selection, multi-agent validation, neurosymbolic guardrails, and agent steering) plus two production deployment demos on Amazon Bedrock AgentCore.
 
 > Based on the Dev.to series [Stop AI Agent Hallucinations: 4 Essential Techniques](https://dev.to/aws/stop-ai-agent-hallucinations-4-essential-techniques-2i94) and [5 Techniques to Stop AI Agent Hallucinations in Production](https://dev.to/aws/5-techniques-to-stop-ai-agent-hallucinations-in-production-oik).
 
@@ -21,10 +21,10 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 | Approach | Hallucination Risk | Retrieval Method | Best For |
 |---|---|---|---|
-| Standard RAG (vector) | High — returns similar content even when irrelevant | Cosine similarity | General Q&A |
-| Graph-RAG (Neo4j) | 73% lower — grounded in entity relationships | Graph traversal + Cypher | Structured domains (hotels, products, finance) |
+| Standard RAG (vector) | High, because it returns similar content even when it is irrelevant | Cosine similarity | General Q&A |
+| Graph-RAG (Neo4j) | Lower, because answers are grounded in entity relationships | Graph traversal + Cypher | Structured domains (hotels, products, finance) |
 
-> **Key insight:** Vector search always returns *something similar*, even when the answer doesn't exist in the database — causing fabrication. Graph-RAG returns only what's explicitly connected in the knowledge graph.
+> **Key insight:** Vector search always returns *something similar*, even when the answer doesn't exist in the database, and that is where fabrication starts. Graph-RAG returns only what's explicitly connected in the knowledge graph.
 
 ---
 
@@ -46,15 +46,15 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 Each demo builds on the previous one. You can run any demo independently, but the learning path is designed to be progressive:
 
-**Phase 1 — Understand Failures:** Demos 01-02 show *why* agents fail — RAG hallucinations and tool selection errors backed by academic research.
+**Phase 1: Understand Failures.** Demos 01-02 show *why* agents fail: RAG hallucinations and tool selection errors.
 
-**Phase 2 — Detect & Prevent:** Demos 03-04 show *how to catch* failures — multi-agent validation and symbolic rule enforcement.
+**Phase 2: Detect and Prevent.** Demos 03-04 show *how to catch* failures: multi-agent validation and symbolic rule enforcement.
 
-**Phase 3 — Self-Correct:** Demo 05 shows *how to steer* agents to self-correct instead of blocking (Agent Control).
+**Phase 3: Self-Correct.** Demo 05 shows *how to steer* agents to self-correct instead of blocking (Agent Control).
 
-**Phase 4 — Deploy to Production:** Demo 06 shows *how to ship* all 5 techniques to production on AWS using Amazon Bedrock AgentCore, DynamoDB, and Lambda.
+**Phase 4: Deploy to Production.** Demo 06 shows *how to ship* all 5 techniques to production on AWS using Amazon Bedrock AgentCore, DynamoDB, and Lambda.
 
-**Phase 5 — Remember Across Sessions:** Demo 07 adds AgentCore Memory so the deployed agent recalls what the user told it in earlier sessions.
+**Phase 5: Remember Across Sessions.** Demo 07 adds AgentCore Memory so the deployed agent recalls what the user told it in earlier sessions.
 
 ---
 
@@ -83,12 +83,12 @@ Each demo README has specific setup instructions and prerequisites.
 
 Demo 01 requires a Neo4j instance to build and query the knowledge graph.
 
-**Running as part of a workshop:** A Neo4j Aura instance will be provided. You will receive the connection credentials (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`) at the start of the session — add them to a `.env` file in `01-graphrag-demo/`.
+**Running as part of a workshop:** A Neo4j Aura instance will be provided. You will receive the connection credentials (`NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`) at the start of the session. Add them to a `.env` file in `01-graphrag-demo/`.
 
 **Running independently:** Create your own free Neo4j Aura instance:
 
 1. Go to [console.neo4j.io](https://console.neo4j.io) and create a free **AuraDB** instance
-2. Download the credentials file when prompted — it contains your URI, username, and password
+2. Download the credentials file when prompted. It contains your URI, username, and password
 3. Create a `.env` file in `01-graphrag-demo/`:
    ```
    NEO4J_URI=neo4j+s://<your-instance>.databases.neo4j.io
@@ -104,7 +104,7 @@ Demo 01 requires a Neo4j instance to build and query the knowledge graph.
 
 ### What types of AI agent hallucinations does this repository address?
 
-This repository addresses four main categories: **(1)** fabricated statistics — when RAG agents guess numbers instead of computing them, **(2)** wrong tool selection — when agents pick inappropriate tools from large toolsets, **(3)** business rule violations — when agents ignore constraints expressed only in prompts, and **(4)** undetected failures — when single agents claim success without validation.
+This repository addresses four main categories: **(1)** fabricated statistics, when RAG agents guess numbers instead of computing them; **(2)** wrong tool selection, when agents pick inappropriate tools from large toolsets; **(3)** business rule violations, when agents ignore constraints expressed only in prompts; and **(4)** undetected failures, when single agents claim success without validation.
 
 ### Can I use these patterns with frameworks other than Strands Agents?
 

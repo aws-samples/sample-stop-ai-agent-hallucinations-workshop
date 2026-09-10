@@ -15,14 +15,14 @@
 
 Three types of RAG hallucination, each with a query in this demo that triggers it:
 
-1. **Fabricated statistics** — The LLM generates plausible-sounding numbers from text chunks instead of computing them
-2. **Incomplete retrieval** — Vector search returns top-k documents, missing data scattered across hundreds of documents
-3. **Out-of-domain fabrication** — When no relevant data exists, vector search still returns its closest matches and the LLM answers from them
+1. **Fabricated statistics**: the LLM generates plausible-sounding numbers from text chunks instead of computing them
+2. **Incomplete retrieval**: vector search returns top-k documents, missing data scattered across hundreds of documents
+3. **Out-of-domain fabrication**: when no relevant data exists, vector search still returns its closest matches and the LLM answers from them
 
 Graph-RAG solves this with:
-- **Native aggregations** — `AVG()`, `COUNT()` computed in the database, not guessed
-- **Relationship traversal** — Cypher queries follow exact paths (Hotel → Room → Amenity)
-- **Explicit failure** — Empty results when data doesn't exist, no fabrication
+- **Native aggregations**: `AVG()`, `COUNT()` computed in the database, not guessed
+- **Relationship traversal**: Cypher queries follow exact paths (Hotel → Room → Amenity)
+- **Explicit failure**: empty results when data doesn't exist, no fabrication
 
 ## 📊 Key Findings
 
@@ -143,12 +143,12 @@ graph_agent = Agent(
 
 ### How the Knowledge Graph is Built
 
-The graph is built **automatically** using `neo4j-graphrag` — no hardcoded schema:
+The graph is built **automatically** using `neo4j-graphrag`, with no hardcoded schema:
 
 ```python
 from neo4j_graphrag.experimental.pipeline.kg_builder import SimpleKGPipeline
 
-# No entities/relations defined — LLM discovers them from text
+# No entities/relations defined, the LLM discovers them from text
 kg_builder = SimpleKGPipeline(
     llm=llm,
     driver=neo4j_driver,
@@ -176,7 +176,7 @@ If you add new documents with new entity types (Restaurant, Airport, etc.), the 
 | [neo4j-graphrag](https://neo4j.com/docs/neo4j-graphrag-python/current/) | Automatic knowledge graph construction |
 | [Neo4j](https://neo4j.com) | Graph database |
 | [FAISS](https://github.com/facebookresearch/faiss) | Vector similarity search |
-| [SentenceTransformers](https://www.sbert.net/) | Text embeddings (runs locally, no API costs — swap for any embedding provider) |
+| [SentenceTransformers](https://www.sbert.net/) | Text embeddings (runs locally, no API costs, swap for any embedding provider) |
 
 
 
@@ -186,9 +186,9 @@ If you add new documents with new entity types (Restaurant, Airport, etc.), the 
 
 **Graph build slow:** Each document takes ~30s (LLM extraction). 300 docs ≈ 2.5 hours. Run once.
 
-**API errors:** Check has valid `OPENAI_API_KEY`
+**API errors:** Check that `OPENAI_API_KEY` is set and valid.
 
-**Model alternatives:** All demos work with OpenAI, Anthropic, or Ollama — see [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/)
+**Model alternatives:** All demos work with OpenAI, Anthropic, or Ollama. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/)
 
 This demo uses Strands Agents. The same Graph-RAG pattern (knowledge graph + Text2Cypher) can be implemented with any framework that supports custom tool calling.
 
@@ -202,7 +202,7 @@ This demo does not produce a hallucination-rate figure. What it shows is which q
 
 ### Do I need to define a schema for the knowledge graph?
 
-No. The graph is built automatically using `neo4j-graphrag`'s `SimpleKGPipeline`. The LLM reads each document and discovers entity types (Hotel, Room, Amenity, Policy), extracts relationships, and resolves duplicates — no hardcoded schema required. New entity types are discovered automatically when you add new documents.
+No. The graph is built automatically using `neo4j-graphrag`'s `SimpleKGPipeline`. The LLM reads each document and discovers entity types (Hotel, Room, Amenity, Policy), extracts relationships, and resolves duplicates, so no hardcoded schema is required. New entity types are discovered automatically when you add new documents.
 
 ### How long does it take to build the knowledge graph?
 
@@ -212,13 +212,13 @@ The lite version (30 documents) takes approximately 15 minutes. The full version
 
 ## Further Reading
 
-- [RAG-KG-IL: A Multi-Agent Hybrid Framework for Reducing Hallucinations and Enhancing LLM Reasoning through RAG and Incremental Knowledge Graph Learning Integration](https://arxiv.org/abs/2503.13514) — case studies on health-related queries; reports hallucination counts of 35 for RAG-KG-IL, 49 for RAG-only and 129 for GPT-4.0, "a substantial reduction of around 73% in hallucinations for RAG-KG-IL compared to GPT-4.0", and 54 incompleteness instances for RAG-only. Different domain and different pipeline from this demo, so none of this demo's behavior is derived from those numbers.
-- [MetaRAG: Metamorphic Testing for Hallucination Detection in RAG Systems](https://arxiv.org/abs/2509.09360) — a testing method for detecting hallucinations in RAG pipelines.
-- [RAKG: Document-level Retrieval Augmented Knowledge Graph Construction](https://arxiv.org/abs/2504.09823v1) — automated knowledge graph construction from text, the same problem `SimpleKGPipeline` solves here.
+- [RAG-KG-IL: A Multi-Agent Hybrid Framework for Reducing Hallucinations and Enhancing LLM Reasoning through RAG and Incremental Knowledge Graph Learning Integration](https://arxiv.org/abs/2503.13514): case studies on health-related queries; reports hallucination counts of 35 for RAG-KG-IL, 49 for RAG-only and 129 for GPT-4.0, "a substantial reduction of around 73% in hallucinations for RAG-KG-IL compared to GPT-4.0", and 54 incompleteness instances for RAG-only. Different domain and different pipeline from this demo, so none of this demo's behavior is derived from those numbers.
+- [MetaRAG: Metamorphic Testing for Hallucination Detection in RAG Systems](https://arxiv.org/abs/2509.09360): a testing method for detecting hallucinations in RAG pipelines.
+- [RAKG: Document-level Retrieval Augmented Knowledge Graph Construction](https://arxiv.org/abs/2504.09823v1): automated knowledge graph construction from text, the same problem `SimpleKGPipeline` solves here.
 
 ## Next Demo
 
-[Demo 02 - Semantic Tool Selection](../02-semantic-tools-demo/) — Reduce token waste and wrong tool picks with FAISS-based semantic filtering.
+[Demo 02 - Semantic Tool Selection](../02-semantic-tools-demo/): reduce token waste and wrong tool picks with FAISS-based semantic filtering.
 
 ---
 

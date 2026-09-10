@@ -2,7 +2,7 @@
 
 # Build AI Agents with Strands Agents and Amazon Bedrock: Workshop Primer
 
-Get up and running with [Strands Agents](https://strandsagents.com) in under 30 minutes. This notebook covers every core concept used throughout the workshop — agents, tools, lifecycle hooks, and multi-agent swarms — with runnable examples and real explanations.
+Get up and running with [Strands Agents](https://strandsagents.com) in under 30 minutes. This notebook covers every core concept used throughout the workshop (agents, tools, lifecycle hooks, and multi-agent swarms) with runnable examples and explanations.
 
 [![Python](https://img.shields.io/badge/Python-3.9+-green.svg?style=flat)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
@@ -19,7 +19,7 @@ Get up and running with [Strands Agents](https://strandsagents.com) in under 30 
 | `Agent` + system prompt | Creates an LLM-powered agent that reasons and acts | All demos |
 | Model providers | Switch between Bedrock, Anthropic, Ollama, or any OpenAI-compatible endpoint | All demos |
 | `@tool` decorator | Expose Python functions as tools the agent can call | All demos |
-| `BeforeToolCallEvent` + `cancel_tool` | Block tool calls that violate rules — LLM cannot bypass | Demos 04, 05, 06 |
+| `BeforeToolCallEvent` + `cancel_tool` | Block tool calls that violate rules, the LLM cannot bypass them | Demos 04, 05, 06 |
 | `Swarm` | Multi-agent handoff chain (Executor → Validator → Critic) | Demo 03 |
 
 ---
@@ -29,7 +29,7 @@ Get up and running with [Strands Agents](https://strandsagents.com) in under 30 
 - Python 3.9+
 - [uv](https://docs.astral.sh/uv/) package manager
 
-**At an AWS event:** AWS credentials and dependencies are pre-configured. Run the first notebook cell as-is — no setup needed.
+**At an AWS event:** AWS credentials and dependencies are pre-configured. Run the first notebook cell as-is, no setup needed.
 
 **Self-paced:** Configure your AWS credentials and enable Bedrock model access:
 
@@ -96,15 +96,15 @@ agent = Agent(tools=[search_hotels], system_prompt="You are a booking assistant.
 agent("Find hotels in Lisbon under $100")
 ```
 
-> **Docstrings are critical.** The agent uses them to match user queries to tools. A vague docstring leads to wrong tool selection — Demo 02 demonstrates this in depth.
+> **Docstrings are critical.** The agent uses them to match user queries to tools. A vague docstring leads to wrong tool selection, and Demo 02 covers this in depth.
 
 See: [Strands Tools Documentation](https://strandsagents.com/docs/user-guide/concepts/tools/custom-tools/)
 
 ---
 
-### 3. Lifecycle Hooks — Enforcing Rules the LLM Cannot Bypass
+### 3. Lifecycle Hooks: Enforcing Rules the LLM Cannot Bypass
 
-Hooks intercept the agent's execution at specific points. `BeforeToolCallEvent` fires after the LLM decides to call a tool but **before** the tool executes. Setting `event.cancel_tool` blocks the call entirely — the LLM receives the cancellation message instead of the tool result and cannot override it.
+Hooks intercept the agent's execution at specific points. `BeforeToolCallEvent` fires after the LLM decides to call a tool but **before** the tool executes. Setting `event.cancel_tool` blocks the call entirely, so the LLM receives the cancellation message instead of the tool result and cannot override it.
 
 ```python
 from strands.hooks import HookProvider, HookRegistry
@@ -161,7 +161,7 @@ See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/user-gui
 
 ### What is Strands Agents and how is it different from LangChain?
 
-[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, `@tool` decorator, and hook system. Similar patterns exist in other agent frameworks — the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
+[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, `@tool` decorator, and hook system. Similar patterns exist in other agent frameworks, and the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
 
 ### Why does the docstring matter for tool selection?
 
@@ -169,7 +169,7 @@ The agent uses the function name and docstring as the tool's description when de
 
 ### Do I need an AWS account to run this notebook?
 
-Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and the model enabled in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess). At an AWS event, the account and credentials are provided — no setup required.
+Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and the model enabled in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess). At an AWS event, the account and credentials are provided, so no setup is required.
 
 ### Can I use a different LLM provider?
 
@@ -177,13 +177,13 @@ Yes. Change the `model` parameter to use any provider supported by Strands Agent
 
 ### What is `cancel_tool` and how is it different from a prompt instruction?
 
-`cancel_tool` is a framework-level block set in a `BeforeToolCallEvent` hook. It fires **before** the tool executes and **after** the LLM has already decided to call it. Unlike instructions in a system prompt (which the LLM can reason around or ignore), `cancel_tool` is enforced by the Strands framework — the LLM receives the block message and cannot retry the tool call for the same reason.
+`cancel_tool` is a framework-level block set in a `BeforeToolCallEvent` hook. It fires **before** the tool executes and **after** the LLM has already decided to call it. Unlike instructions in a system prompt (which the LLM can reason around or ignore), `cancel_tool` is enforced by the Strands framework, so the LLM receives the block message and cannot retry the tool call for the same reason.
 
 ---
 
 ## Navigation
 
-- **Next:** [Demo 01 — Graph-RAG vs RAG](../01-graphrag-demo/)
+- **Next:** [Demo 01: Graph-RAG vs RAG](../01-graphrag-demo/)
 
 ---
 

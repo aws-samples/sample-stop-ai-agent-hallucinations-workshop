@@ -13,8 +13,8 @@ Deploy AgentCore agent with long-term memory that recalls user preferences acros
 ## What This Module Does
 
 1. **Creates AgentCore Memory resource** with two strategies:
-   - `UserPreferences` — hotel preferences (stars, cities)
-   - `UserFacts` — user information (name, loyalty number)
+   - `UserPreferences`: hotel preferences (stars, cities)
+   - `UserFacts`: user information (name, loyalty number)
 
 2. **Deploys a second agent** with `memory_mode="STM_AND_LTM"`:
    - Code: `booking_agent_with_memory.py`

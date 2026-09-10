@@ -26,7 +26,7 @@ But blocking alone has limitations. If a user requests 15 guests and the maximum
 
 ![One turn, five steps. The user asks to book AnyCompany Lisbon Resort for 15 guests, the LLM describes the booking it is about to make, a regex in the steer control matches any guest count from 11 up in that output, the control sends back the instruction to call book_hotel twice with 10 and then 5 guests, and the agent tells the user the reservation was split into two rooms](./images/steering-loop.png)
 
-[Agent Control](https://github.com/agentcontrol/agent-control) introduces **steer controls** — server-managed policies that guide the agent to self-correct when a violation is detected, instead of terminating the operation:
+[Agent Control](https://github.com/agentcontrol/agent-control) introduces **steer controls**: server-managed policies that guide the agent to self-correct when a violation is detected, instead of terminating the operation:
 
 | Approach | 15 guests requested | Result |
 |----------|-------------------|--------|
@@ -37,43 +37,43 @@ But blocking alone has limitations. If a user requests 15 guests and the maximum
 
 | | Hooks ([Demo 04](../04-neurosymbolic-demo/)) | Agent Control (this demo) |
 |---|---|---|
-| Where rules live | Python code (`rules.py`) | Server — API/dashboard |
+| Where rules live | Python code (`rules.py`) | Server (API or dashboard) |
 | When a rule fails | `cancel_tool = "BLOCKED"` → agent fails | The control's steering context goes back to the agent → it calls the tool again as guided |
-| To change a rule | Edit code, redeploy | API call or dashboard — no code changes |
+| To change a rule | Edit code, redeploy | API call or dashboard, no code changes |
 | Integration | `HookProvider` + `hooks=[...]` | `Plugin` + `plugins=[...]` |
 | Evaluators | Custom Python lambdas | regex (pattern matching), list (exact value matching), JSON schema (structure validation), AI via Galileo Luna-2 (semantic evaluation) |
 | Scope | `BeforeToolCallEvent` only | LLM input/output, tool input/output, pre/post |
 
 ## The Tools
 
-Three booking tools in `tools.py` — clean, no validation logic:
+Three booking tools in `tools.py`, with no validation logic:
 
 | Tool | What it does | Key behavior |
 |------|-------------|--------------|
-| `book_hotel(hotel, check_in, check_out, guests)` | Books a hotel room | Returns `"SUCCESS: Booking BK001..."` — no guest limit in the tool |
+| `book_hotel(hotel, check_in, check_out, guests)` | Books a hotel room | Returns `"SUCCESS: Booking BK001..."`, no guest limit in the tool |
 | `process_payment(amount, booking_id)` | Processes payment | Returns `"SUCCESS"` or `"ERROR: Booking not found"` |
 | `confirm_booking(booking_id)` | Confirms a booking | Returns `"SUCCESS: Confirmed BK001"` |
 
-The tools do NOT enforce the max-guests rule. That is the guardrail layer's job — either Hooks or Agent Control.
+The tools do NOT enforce the max-guests rule. That is the guardrail layer's job, either Hooks or Agent Control.
 
 Agent Control integrates as a Plugin with two lines:
 
 ```python
-# Hooks (existing approach — block):
+# Hooks (existing approach, block):
 agent = Agent(tools=[...], hooks=[MaxGuestsHook()])
 
-# Agent Control (new approach — steer):
+# Agent Control (new approach, steer):
 agent = Agent(tools=[...], plugins=[AgentControlPlugin(...), AgentControlSteeringHandler(...)])
 ```
 
 ## What We Test
 
-Same query, same tools, same model — only the guardrail changes:
+Same query, same tools, same model. Only the guardrail changes:
 
 | Test | Guardrail | Outcome |
 |------|-----------|---------|
-| 1 — Hooks | `MaxGuestsHook` with `cancel_tool` | Agent is BLOCKED → asks user what to do |
-| 2 — Agent Control | `AgentControlSteeringHandler` | Agent splits the booking into two rooms, 10 guests and 5 → both bookings complete |
+| 1. Hooks | `MaxGuestsHook` with `cancel_tool` | Agent is BLOCKED → asks user what to do |
+| 2. Agent Control | `AgentControlSteeringHandler` | Agent splits the booking into two rooms, 10 guests and 5 → both bookings complete |
 
 ---
 
@@ -81,8 +81,8 @@ Same query, same tools, same model — only the guardrail changes:
 
 | Mode | Best for | How it works |
 |------|----------|-------------|
-| **Server** (this demo) | Teams, production, dashboard management | Controls live on the Agent Control server — change via API or dashboard without redeploying |
-| **Local YAML** | Quick prototyping, single-developer projects | Controls defined in a `controls.yaml` file — no server needed, `agent_control.init(controls_file="controls.yaml")` |
+| **Server** (this demo) | Teams, production, dashboard management | Controls live on the Agent Control server, so you change them via API or dashboard without redeploying |
+| **Local YAML** | Quick prototyping, single-developer projects | Controls defined in a `controls.yaml` file, no server needed: `agent_control.init(controls_file="controls.yaml")` |
 
 This demo uses the **server approach**. See the [Agent Control docs](https://docs.agentcontrol.dev/) for YAML-based local mode or server setup instructions.
 
@@ -91,7 +91,7 @@ This demo uses the **server approach**. See the [Agent Control docs](https://doc
 ## Prerequisites
 
 - Python 3.9+
-- OpenAI API key — get one at https://platform.openai.com/api-keys (or use any [supported model provider](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) such as Amazon Bedrock or Anthropic)
+- OpenAI API key, get one at https://platform.openai.com/api-keys (or use any [supported model provider](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) such as Amazon Bedrock or Anthropic)
 - [Agent Control server](https://docs.agentcontrol.dev/) running locally (see [setup instructions](https://github.com/agentcontrol/agent-control))
 
 ---
@@ -169,7 +169,7 @@ Stop the Agent Control server following the [shutdown instructions](https://docs
 
 | File | Purpose |
 |------|---------|
-| `tools.py` | Booking tools — clean, no validation logic |
+| `tools.py` | Booking tools, no validation logic |
 | `setup_controls.py` | Creates steer + deny controls on Agent Control server |
 | `test_hooks_vs_control.py` | Runs both approaches on the same query, compares results |
 | `test_hooks_vs_control.ipynb` | Interactive notebook version |
@@ -180,19 +180,19 @@ Stop the Agent Control server following the [shutdown instructions](https://docs
 ## References
 
 ### Research
-- [ATA: Autonomous Trustworthy Agents (2024)](https://arxiv.org/html/2510.16381v1) — Guardrail failure patterns in AI agents
-- [Enhancing LLMs through Neuro-Symbolic Integration](https://arxiv.org/pdf/2504.07640v1) — Combining neural + symbolic reasoning
+- [ATA: Autonomous Trustworthy Agents (2024)](https://arxiv.org/html/2510.16381v1): guardrail failure patterns in AI agents
+- [Enhancing LLMs through Neuro-Symbolic Integration](https://arxiv.org/pdf/2504.07640v1): combining neural + symbolic reasoning
 
 ### Strands Agents
-- [Strands Agents with Agent Control](https://strandsagents.com/blog/strands-agents-with-agent-control/) — Blog announcement
-- [Agent Control Plugin](https://strandsagents.com/docs/community/plugins/agent-control/) — Strands integration docs
-- [Strands Hooks](https://strandsagents.com/docs/user-guide/concepts/agents/hooks/) — `BeforeToolCallEvent`, `cancel_tool`
-- [Strands Steering](https://strandsagents.com/docs/user-guide/concepts/plugins/steering/) — `Guide`, `Proceed`, `SteeringHandler`
-- [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) — Swap to Amazon Bedrock, Anthropic, Ollama
+- [Strands Agents with Agent Control](https://strandsagents.com/blog/strands-agents-with-agent-control/): blog announcement
+- [Agent Control Plugin](https://strandsagents.com/docs/community/plugins/agent-control/): Strands integration docs
+- [Strands Hooks](https://strandsagents.com/docs/user-guide/concepts/agents/hooks/): `BeforeToolCallEvent`, `cancel_tool`
+- [Strands Steering](https://strandsagents.com/docs/user-guide/concepts/plugins/steering/): `Guide`, `Proceed`, `SteeringHandler`
+- [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/): swap to Amazon Bedrock, Anthropic, Ollama
 
 ### Agent Control
-- [Agent Control GitHub](https://github.com/agentcontrol/agent-control) — Open source, Apache 2.0
-- [Agent Control Docs](https://docs.agentcontrol.dev/) — Server setup and API reference
+- [Agent Control GitHub](https://github.com/agentcontrol/agent-control): open source, Apache 2.0
+- [Agent Control Docs](https://docs.agentcontrol.dev/): server setup and API reference
 
 ---
 
@@ -200,22 +200,22 @@ Stop the Agent Control server following the [shutdown instructions](https://docs
 
 ### What is the difference between Agent Control and Amazon Bedrock AgentCore?
 
-They are different products. **Agent Control** is an open-source guardrail server that evaluates agent actions and returns steer/deny decisions — it runs locally or on any infrastructure. **Amazon Bedrock AgentCore** is an AWS managed service for hosting and deploying agents in production with MCP routing, observability, and scaling. Demo 05 uses Agent Control for steering; [Demo 06](../06-agentcore-boto3-demo/) uses Amazon Bedrock AgentCore for production deployment.
+They are different products. **Agent Control** is an open-source guardrail server that evaluates agent actions and returns steer/deny decisions, and it runs locally or on any infrastructure. **Amazon Bedrock AgentCore** is an AWS managed service for hosting and deploying agents in production with MCP routing, observability, and scaling. Demo 05 uses Agent Control for steering; [Demo 06](../06-agentcore-boto3-demo/) uses Amazon Bedrock AgentCore for production deployment.
 
 ### When should I use steering (Agent Control) instead of blocking (hooks)?
 
-Use **hooks** (blocking) when the violation is a hard constraint that cannot be self-corrected — for example, confirming a booking without payment. Use **steering** (Agent Control) when the agent can adjust and complete the task — for example, splitting a 15-guest request into two rooms of 10 and 5 and telling the user. Steering reduces user friction because the task completes instead of failing.
+Use **hooks** (blocking) when the violation is a hard constraint that cannot be self-corrected, for example confirming a booking without payment. Use **steering** (Agent Control) when the agent can adjust and complete the task, for example splitting a 15-guest request into two rooms of 10 and 5 and telling the user. Steering reduces user friction because the task completes instead of failing.
 
 ### Can I use the steering pattern with other agent frameworks?
 
-Yes. The steer-instead-of-block pattern is framework-agnostic. Agent Control integrates as a plugin with Strands Agents, but the concept — intercepting LLM output, evaluating it against rules, and injecting corrective guidance — can be implemented in any framework that supports middleware or output hooks.
+Yes. The steer-instead-of-block pattern is framework-agnostic. Agent Control integrates as a plugin with Strands Agents, but the concept (intercepting LLM output, evaluating it against rules, and injecting corrective guidance) can be implemented in any framework that supports middleware or output hooks.
 
 ---
 
 ## Navigation
 
 - **Previous:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/)
-- **Next:** [Demo 06 - Amazon Bedrock AgentCore Production](../06-agentcore-boto3-demo/) — Deploy all techniques to production on AWS
+- **Next:** [Demo 06 - Amazon Bedrock AgentCore Production](../06-agentcore-boto3-demo/): deploy all techniques to production on AWS
 
 ---
 
