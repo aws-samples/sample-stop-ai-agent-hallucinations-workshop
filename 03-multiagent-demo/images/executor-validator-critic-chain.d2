@@ -1,0 +1,318 @@
+# Source for static/images/multiagent-flow.png
+# Also installed as 03-multiagent-demo/images/executor-validator-critic-chain.png
+# in the companion code repo (the two files are identical).
+#
+# Render:
+#   d2 --theme 0 --pad 30 multiagent-flow.d2 multiagent-flow.png
+#   then downscale to 2200px wide (sips -Z 2200).
+#
+# Rules for editing (see progressive-flow.d2 for the full set):
+#  - No number appears here that the demo does not establish. "3 LLM calls instead
+#    of 1" is the trade-off content/multiagent/index.en.md states; AnyCompany
+#    Antarctica is the hotel deliberately missing from the HOTELS dictionary in
+#    tools.py. There is no accuracy figure because the demo does not measure one:
+#    the file this replaced was named single-vs-multi-agent-accuracy.png and
+#    contained no accuracy data at all.
+#  - Do not claim the single agent "defends" its own hallucination. The content says
+#    so in prose, but it is an assertion, not a measurement. What is plainly true is
+#    that nothing else checks the answer, so that is what the card says.
+#  - No red/green pair: the accessibility checklist forbids it. The contrast is gray
+#    (one agent) against AWS blue (the swarm).
+#  - The two bands are deliberately the same shape (3 cards, 2 arrows) so the columns
+#    line up: both act, then one reports itself while the other gets checked, then
+#    one is silent while the other returns a status.
+#  - Grid layout is required: d2 0.7.1 ignores `direction` inside a container.
+#  - Widths go on the inner text nodes, never on the card container: a container with
+#    an explicit width clips its text. Both bands are 3 * 460 + 2 * 40, so changing a
+#    card width means changing it in both bands.
+
+grid-rows: 4
+vertical-gap: 26
+horizontal-gap: 24
+
+title: "Three agents instead of one" {
+  height: 48
+  style: {
+    font-size: 32
+    bold: true
+    stroke-width: 0
+    fill: transparent
+    font-color: "#16191F"
+  }
+}
+
+subtitle: "The same booking request, judged by an agent that did not carry it out" {
+  height: 28
+  style: {
+    font-size: 17
+    stroke-width: 0
+    fill: transparent
+    font-color: "#5F6B7A"
+  }
+}
+
+single: "Single agent   ·   the agent that acts is the agent that reports" {
+  grid-columns: 5
+  horizontal-gap: 14
+  vertical-gap: 6
+  style: {
+    stroke: "#5F6B7A"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F7F8F9"
+    border-radius: 14
+    font-size: 21
+    font-color: "#4A5561"
+  }
+
+  a1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "One agent does everything" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Searches, books, and writes the\nanswer the user will read" {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x1: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#8A96A3"
+    }
+  }
+
+  a2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Nobody else checks" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "The answer reaches the user with\nno second opinion on it" {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x2: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#8A96A3"
+    }
+  }
+
+  a3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#F2F3F5"
+      border-radius: 10
+    }
+    t: "A silent success" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "A confirmed booking at AnyCompany\nAntarctica, a hotel that does not exist" {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#4A5561"
+      }
+    }
+  }
+}
+
+swarm: "Swarm   ·   3 LLM calls instead of 1   ·   no agent marks its own work" {
+  grid-columns: 5
+  horizontal-gap: 14
+  vertical-gap: 6
+  style: {
+    stroke: "#0972D3"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F6FAFE"
+    border-radius: 14
+    font-size: 21
+    font-color: "#0972D3"
+  }
+
+  b1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Executor" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "The only agent with tools.\nIt searches and it books." {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  y1: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  b2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Validator" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "No tools, so it can only compare the\nanswer against the original request" {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  y2: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  b3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#EFF7FE"
+      border-radius: 10
+    }
+    t: "Critic" {
+      width: 460
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "APPROVED, SUSPICIOUS or INVALID.\nA status, not a silent answer." {
+      width: 460
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#0B5FA8"
+      }
+    }
+  }
+}

@@ -8,7 +8,7 @@
 
 > Hooks are functions that run at specific points in an agent's lifecycle. In this demo, hooks intercept tool calls and block them using `cancel_tool` when a business rule is violated. The agent reports failure and the user must retry. Agent Control goes further: it **steers** the agent to fix the problem and complete the task, instead of failing.
 
-![Hooks (Block) vs Agent Control (Self-Correct) comparison](./images/hooks-vs-agent-control.jpg)
+![Two bands over the same request for 15 guests against the same 10-guest rule. The hook reads the tool input, sees guests=15, and cancel_tool returns a BLOCKED message in place of a booking, so no room is booked and someone has to ask again. The steer control reads the text the LLM wrote, matches any count from 11 up, and sends back the instruction to call book_hotel twice with 10 and then 5, so the user is told the reservation was split into two rooms at the same hotel](./images/hooks-vs-steering.png)
 
 Based on: [Strands Agents with Agent Control](https://strandsagents.com/blog/strands-agents-with-agent-control/)
 
@@ -20,25 +20,25 @@ This demo uses Strands Agents and Agent Control. The guardrail patterns demonstr
 
 [Demo 04 (Neurosymbolic Guardrails)](../04-neurosymbolic-demo/) demonstrates that hooks can enforce business rules at the tool level. When a rule is violated, `cancel_tool` blocks the call and the agent tells the user it cannot proceed.
 
-But blocking alone has limitations. If a user requests 15 guests and the maximum is 10, the agent could adjust to 10 and complete the booking. Instead, with hooks alone, it asks the user to change their request, interrupting the flow.
+But blocking alone has limitations. If a user requests 15 guests and the maximum is 10 per room, the booking can still go ahead as two rooms. With hooks alone, the agent asks the user to change their request instead, interrupting the flow.
 
 ## The Solution: Steer Instead of Block
 
-![Agent Control steer flow: User Request → LLM → Agent Control server evaluates → Self-Correct → Final Response](./images/Agent-Control.jpg)
+![One turn, five steps. The user asks to book AnyCompany Lisbon Resort for 15 guests, the LLM describes the booking it is about to make, a regex in the steer control matches any guest count from 11 up in that output, the control sends back the instruction to call book_hotel twice with 10 and then 5 guests, and the agent tells the user the reservation was split into two rooms](./images/steering-loop.png)
 
 [Agent Control](https://github.com/agentcontrol/agent-control) introduces **steer controls** — server-managed policies that guide the agent to self-correct when a violation is detected, instead of terminating the operation:
 
 | Approach | 15 guests requested | Result |
 |----------|-------------------|--------|
-| **Hooks** | BLOCKED | "Would you like to adjust?" (flow stopped) |
-| **Agent Control** | Guide("reduce to 10") | Retries with 10, BK002 confirmed (flow completed) |
+| **Hooks** | `cancel_tool` blocks `book_hotel` | Nothing is booked, the user has to ask again |
+| **Steering** | Guidance: call `book_hotel` twice, with 10 then 5 | Two rooms booked, the split explained to the user |
 
 ## How It Differs from Hooks
 
 | | Hooks ([Demo 04](../04-neurosymbolic-demo/)) | Agent Control (this demo) |
 |---|---|---|
 | Where rules live | Python code (`rules.py`) | Server — API/dashboard |
-| When a rule fails | `cancel_tool = "BLOCKED"` → agent fails | `Guide("reduce to 10")` → agent retries corrected |
+| When a rule fails | `cancel_tool = "BLOCKED"` → agent fails | The control's steering context goes back to the agent → it calls the tool again as guided |
 | To change a rule | Edit code, redeploy | API call or dashboard — no code changes |
 | Integration | `HookProvider` + `hooks=[...]` | `Plugin` + `plugins=[...]` |
 | Evaluators | Custom Python lambdas | regex (pattern matching), list (exact value matching), JSON schema (structure validation), AI via Galileo Luna-2 (semantic evaluation) |
@@ -73,7 +73,7 @@ Same query, same tools, same model — only the guardrail changes:
 | Test | Guardrail | Outcome |
 |------|-----------|---------|
 | 1 — Hooks | `MaxGuestsHook` with `cancel_tool` | Agent is BLOCKED → asks user what to do |
-| 2 — Agent Control | `AgentControlSteeringHandler` with `Guide()` | Agent self-corrects to 10 guests → booking completes |
+| 2 — Agent Control | `AgentControlSteeringHandler` | Agent splits the booking into two rooms, 10 guests and 5 → both bookings complete |
 
 ---
 
@@ -141,17 +141,21 @@ Or open `test_hooks_vs_control.ipynb` in your IDE (VS Code, Kiro, or any editor 
 
 | Control | Type | Scope | What it does |
 |---------|------|-------|-------------|
-| `steer-max-guests` | STEER | LLM output (post) | Guides agent to reduce guest count to <= 10 and inform the user |
+| `steer-max-guests` | STEER | LLM output (post) | Guides agent to call `book_hotel` twice, with 10 guests and then 5, and report the split |
 | `deny-no-payment` | DENY | Tool input (pre) on `confirm_booking` | Blocks booking confirmation without payment |
 
 ---
 
 ## Expected Output
 
+The two status lines the script prints for each test:
+
 ```
-Test 1 — Hooks:          "Would you like to adjust the number of guests?"  (blocked)
-Test 2 — Agent Control:  "Adjusted to 10 guests. Booking ID: BK002."      (self-corrected)
+Test 1 — Hooks:          🚫 Agent was BLOCKED — reported failure or asked user to change
+Test 2 — Agent Control:  ✅ Agent self-corrected — split into 2 rooms (10 + 5 guests)
 ```
+
+Timings and token counts are printed alongside them and vary per run.
 
 ---
 
@@ -196,22 +200,22 @@ Stop the Agent Control server following the [shutdown instructions](https://docs
 
 ### What is the difference between Agent Control and Amazon Bedrock AgentCore?
 
-They are different products. **Agent Control** is an open-source guardrail server that evaluates agent actions and returns steer/deny decisions — it runs locally or on any infrastructure. **Amazon Bedrock AgentCore** is an AWS managed service for hosting and deploying agents in production with MCP routing, observability, and scaling. Demo 05 uses Agent Control for steering; [Demo 06](../06-agentcore-cdk-demo/) uses Amazon Bedrock AgentCore for production deployment.
+They are different products. **Agent Control** is an open-source guardrail server that evaluates agent actions and returns steer/deny decisions — it runs locally or on any infrastructure. **Amazon Bedrock AgentCore** is an AWS managed service for hosting and deploying agents in production with MCP routing, observability, and scaling. Demo 05 uses Agent Control for steering; [Demo 06](../06-agentcore-boto3-demo/) uses Amazon Bedrock AgentCore for production deployment.
 
 ### When should I use steering (Agent Control) instead of blocking (hooks)?
 
-Use **hooks** (blocking) when the violation is a hard constraint that cannot be self-corrected — for example, confirming a booking without payment. Use **steering** (Agent Control) when the agent can adjust and complete the task — for example, reducing 15 guests to the maximum of 10 and informing the user. Steering reduces user friction because the task completes instead of failing.
+Use **hooks** (blocking) when the violation is a hard constraint that cannot be self-corrected — for example, confirming a booking without payment. Use **steering** (Agent Control) when the agent can adjust and complete the task — for example, splitting a 15-guest request into two rooms of 10 and 5 and telling the user. Steering reduces user friction because the task completes instead of failing.
 
 ### Can I use the steering pattern with other agent frameworks?
 
-Yes. The steer-instead-of-block pattern is framework-agnostic. Agent Control integrates as a plugin with Strands Agents, but the concept — intercepting LLM output, evaluating it against rules, and injecting corrective guidance — can be implemented in LangGraph, CrewAI, AutoGen, or any framework that supports middleware or output hooks.
+Yes. The steer-instead-of-block pattern is framework-agnostic. Agent Control integrates as a plugin with Strands Agents, but the concept — intercepting LLM output, evaluating it against rules, and injecting corrective guidance — can be implemented in any framework that supports middleware or output hooks.
 
 ---
 
 ## Navigation
 
 - **Previous:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/)
-- **Next:** [Demo 06 - Amazon Bedrock AgentCore Production](../06-agentcore-cdk-demo/) — Deploy all techniques to production on AWS
+- **Next:** [Demo 06 - Amazon Bedrock AgentCore Production](../06-agentcore-boto3-demo/) — Deploy all techniques to production on AWS
 
 ---
 

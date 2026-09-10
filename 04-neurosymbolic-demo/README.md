@@ -8,7 +8,7 @@
 > Combines LLM flexibility with symbolic rules for verifiable, constrained decision-making in AI agents.
 
 
-![Diagram showing LLM flexibility combined with symbolic rule enforcement](images/neurosymbolic.png)
+![Two bands over the same 10-guest limit. Written in the system prompt, nothing checks the call, book_hotel(guests=15) runs, and the tool returns a success so the rule breaks without a signal. Written in a BeforeToolCallEvent hook as the pure function guests <= 10, event.cancel_tool stops book_hotel before the function is entered and the agent reads BLOCKED: Maximum 10 guests per booking as the tool result](images/neurosymbolic.png)
 
 
 ## The Problem
@@ -137,7 +137,7 @@ Research ([ATA: Autonomous Trustworthy Agents, 2024](https://arxiv.org/html/2510
 
 ### Can I use this pattern with other agent frameworks?
 
-Yes. Any framework that supports lifecycle hooks or middleware (LangGraph callbacks, CrewAI task hooks, AutoGen function wrappers) can implement the same neurosymbolic pattern. The core idea — intercept tool calls and validate parameters against symbolic rules — is framework-agnostic.
+Yes. Any framework that supports lifecycle hooks or middleware can implement the same neurosymbolic pattern. The core idea — intercept tool calls and validate parameters against symbolic rules — is framework-agnostic.
 
 ## References
 

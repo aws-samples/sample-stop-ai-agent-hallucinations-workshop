@@ -1,0 +1,271 @@
+# Source for static/images/neurosymbolic.png
+# Also installed as 04-neurosymbolic-demo/images/neurosymbolic.png
+# in the companion code repo (the two files are identical).
+#
+# Render:
+#   d2 --theme 0 --pad 30 neurosymbolic.d2 neurosymbolic.png
+#   then downscale to 2200px wide (sips -Z 2200).
+#
+# Rules for editing (see progressive-flow.d2 for the full set):
+#  - Every identifier here is taken from the demo, not paraphrased:
+#    BeforeToolCallEvent and event.cancel_tool are in test_neurosymbolic_hooks.py,
+#    the guests <= 10 condition and the "Maximum 10 guests per booking" message are
+#    in rules.py, and the cancel message the LLM receives starts with "BLOCKED:".
+#  - No results in this image. The 3-of-3 blocked figure lives in the content table
+#    where the scenarios that produced it are listed; a diagram that repeats it out
+#    of context reads like a benchmark.
+#  - No red/green pair: the accessibility checklist forbids it. The version this
+#    replaced used a red panel against a green panel with X and check marks. The
+#    contrast is now gray (the prompt) against AWS blue (the hook).
+#  - Both bands are the same shape (3 cards) so the columns line up: where the rule
+#    is written, what happens when the agent breaks it, and what the agent is told.
+#  - Grid layout is required: d2 0.7.1 ignores `direction` inside a container.
+#  - Widths go on the inner text nodes, never on the card container: a container with
+#    an explicit width clips its text. Keep both bands at 3 * 500.
+
+grid-rows: 4
+vertical-gap: 26
+horizontal-gap: 24
+
+title: "A suggestion and a constraint" {
+  height: 48
+  style: {
+    font-size: 32
+    bold: true
+    stroke-width: 0
+    fill: transparent
+    font-color: "#16191F"
+  }
+}
+
+subtitle: "The same 10-guest limit, written in two different places" {
+  height: 28
+  style: {
+    font-size: 17
+    stroke-width: 0
+    fill: transparent
+    font-color: "#5F6B7A"
+  }
+}
+
+prompt: "In the system prompt   ·   the LLM reads the rule and decides what to do with it" {
+  grid-columns: 3
+  horizontal-gap: 18
+  vertical-gap: 6
+  style: {
+    stroke: "#5F6B7A"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F7F8F9"
+    border-radius: 14
+    font-size: 21
+    font-color: "#4A5561"
+  }
+
+  a1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Written in words" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "IMPORTANT: maximum 10 guests,\nsomewhere in the system prompt" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  a2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Nothing checks the call" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "book_hotel(guests=15) runs and the\nbooking is created for 15 guests" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  a3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#F2F3F5"
+      border-radius: 10
+    }
+    t: "The agent hears nothing" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "The tool returns a success, so the\nrule is broken without a signal" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#4A5561"
+      }
+    }
+  }
+}
+
+hook: "In a BeforeToolCallEvent hook   ·   deterministic code, no extra LLM call" {
+  grid-columns: 3
+  horizontal-gap: 18
+  vertical-gap: 6
+  style: {
+    stroke: "#0972D3"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F6FAFE"
+    border-radius: 14
+    font-size: 21
+    font-color: "#0972D3"
+  }
+
+  b1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Written in code" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "ctx.get(\"guests\", 1) <= 10, a pure\nfunction with no LLM in it" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  b2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "The call never runs" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "event.cancel_tool stops book_hotel\nbefore the function is entered" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  b3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#EFF7FE"
+      border-radius: 10
+    }
+    t: "The agent is told why" {
+      width: 500
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "It reads BLOCKED: Maximum 10 guests\nper booking as the tool result" {
+      width: 500
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#0B5FA8"
+      }
+    }
+  }
+}

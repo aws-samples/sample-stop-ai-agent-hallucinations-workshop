@@ -1,0 +1,263 @@
+# Source for images/steering-loop.png
+#
+# Render:
+#   d2 --theme 0 --pad 30 steering-loop.d2 steering-loop.png
+#   then downscale to 2200px wide (sips -Z 2200).
+#
+# Rules for editing (see the workshop repo's static/images/progressive-flow.d2 for
+# the full set):
+#  - The order of the steps is the control's own scope, not a guess: steer-max-guests
+#    in setup_controls.py declares step_types ["llm"] and stages ["post"] with
+#    selector path "output", so it evaluates the text the LLM just produced, before
+#    the booking call. Its steering_context is the text quoted in the fourth card.
+#  - The query is the one test_hooks_vs_control.py sends.
+#  - This replaced Agent-Control.jpg, a clipart flow whose "Self-Correct" step was a
+#    red arrow against a green arrow. The accessibility checklist forbids that pair,
+#    and none of the steps named what actually fires.
+#  - Grid layout is required: d2 0.7.1 ignores `direction` inside a container.
+#  - Widths go on the inner text nodes, never on the card container: a container with
+#    an explicit width clips its text.
+
+grid-rows: 3
+vertical-gap: 26
+horizontal-gap: 24
+
+title: "Where a steer control fires" {
+  height: 48
+  style: {
+    font-size: 32
+    bold: true
+    stroke-width: 0
+    fill: transparent
+    font-color: "#16191F"
+  }
+}
+
+subtitle: "The agent corrects itself inside one turn, with no second request from the user" {
+  height: 28
+  style: {
+    font-size: 17
+    stroke-width: 0
+    fill: transparent
+    font-color: "#5F6B7A"
+  }
+}
+
+loop: "One turn   ·   the policy lives on the Agent Control server, not in the agent's code" {
+  grid-columns: 9
+  horizontal-gap: 14
+  vertical-gap: 6
+  style: {
+    stroke: "#0972D3"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F6FAFE"
+    border-radius: 14
+    font-size: 21
+    font-color: "#0972D3"
+  }
+
+  c1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "User request" {
+      width: 320
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Book AnyCompany Lisbon\nResort for 15 guests" {
+      width: 320
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x1: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  c2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "The LLM answers first" {
+      width: 320
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "It describes the booking\nit is about to make" {
+      width: 320
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x2: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  c3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "The control reads it" {
+      width: 320
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "A regex on that output\nmatches any count from 11 up" {
+      width: 320
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x3: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  c4: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Guidance, not a block" {
+      width: 320
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Call book_hotel twice:\nguests=10, then guests=5" {
+      width: 320
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  x4: "→" {
+    width: 40
+    height: 30
+    style: {
+      font-size: 26
+      stroke-width: 0
+      fill: transparent
+      font-color: "#0972D3"
+    }
+  }
+
+  c5: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#EFF7FE"
+      border-radius: 10
+    }
+    t: "Two bookings" {
+      width: 320
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "The user is told the booking\nwas split into 10 + 5" {
+      width: 320
+      height: 56
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#0B5FA8"
+      }
+    }
+  }
+}

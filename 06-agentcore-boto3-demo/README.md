@@ -10,7 +10,7 @@ Deploy all anti-hallucination techniques from the previous demos in this series 
 [![Lambda](https://img.shields.io/badge/AWS-Lambda-orange.svg?style=flat&logo=aws-lambda)](https://aws.amazon.com/lambda/)
 [![Neo4j](https://img.shields.io/badge/Neo4j-AuraDB-blue.svg?style=flat)](https://neo4j.com/cloud/aura-free/)
 
-This demo uses [Strands Agents](https://github.com/strands-agents/sdk-python) with [Amazon Bedrock](https://aws.amazon.com/bedrock/). Similar patterns apply with LangGraph, AutoGen, or other agent frameworks that support AgentCore Runtime.
+This demo uses [Strands Agents](https://github.com/strands-agents/sdk-python) with [Amazon Bedrock](https://aws.amazon.com/bedrock/). Similar patterns apply with other agent frameworks that support AgentCore Runtime.
 
 ---
 

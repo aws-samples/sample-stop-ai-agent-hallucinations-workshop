@@ -82,6 +82,9 @@ generated-diagrams/
 /blog_es
 /create-dump
 
+# Local image prompt notes (draft figures, not part of the demos)
+images/canva-prompts.md
+
 # Generated data files (rebuild with load_vector_data.py)
 faqs_docs.json
 faqs_vector.index

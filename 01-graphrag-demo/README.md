@@ -9,22 +9,15 @@
 
 > Traditional RAG makes AI agents hallucinate statistics and aggregations. This demo compares RAG ([FAISS](https://github.com/facebookresearch/faiss), a vector similarity search library) vs Graph-RAG ([Neo4j](https://neo4j.com), a graph database) on 300 hotel FAQ documents to measure which approach reduces hallucinations.
 
-![Agentic RAG vs Agentic Graph-RAG comparison](images/rag-hallucination-problem.png)
-
-## Research Background
-
-Based on recent papers:
-- [RAG-KG-IL: Multi-Agent Hybrid Framework for Reducing Hallucinations](https://arxiv.org/pdf/2503.13514) — KG reduces hallucinations by 73% vs standalone LLMs
-- [MetaRAG: Metamorphic Testing for Hallucination Detection](https://arxiv.org/pdf/2509.09360) — Proves hallucinations are inherent to LLMs
-- [RAKG: Document-level Retrieval Augmented Knowledge Graph Construction](https://arxiv.org/pdf/2504.09823v1) — Automated KG construction from text
+![Two bands comparing the same 300 hotel FAQ documents: vector RAG fabricates statistics from retrieved chunks, reads only the 3 closest documents, and answers even when nothing matches, while Graph-RAG computes AVG and COUNT inside Neo4j, traverses the whole graph, and returns an empty result when it has no data](images/rag-hallucination-problem.png)
 
 ## 🎯 What This Demo Shows
 
-Research ([RAG-KG-IL, 2025](https://arxiv.org/pdf/2503.13514)) identifies three types of RAG hallucinations:
+Three types of RAG hallucination, each with a query in this demo that triggers it:
 
-1. **Fabricated statistics** — LLM generates plausible-sounding numbers from text chunks instead of computing them (paper shows 73% more hallucinations without KG)
-2. **Incomplete retrieval** — Vector search returns top-k documents, missing data scattered across hundreds of documents (paper found 54 instances of missing information with RAG-only)
-3. **Out-of-domain fabrication** — When no relevant data exists, RAG returns similar-looking results and the LLM fabricates an answer ([MetaRAG](https://arxiv.org/pdf/2509.09360))
+1. **Fabricated statistics** — The LLM generates plausible-sounding numbers from text chunks instead of computing them
+2. **Incomplete retrieval** — Vector search returns top-k documents, missing data scattered across hundreds of documents
+3. **Out-of-domain fabrication** — When no relevant data exists, vector search still returns its closest matches and the LLM answers from them
 
 Graph-RAG solves this with:
 - **Native aggregations** — `AVG()`, `COUNT()` computed in the database, not guessed
@@ -40,11 +33,9 @@ Graph-RAG solves this with:
 | Counting across documents | ❌ Only sees 3 docs | ✅ Precise COUNT() |
 | Missing data handling | ❌ Fabricates answers | ✅ Honest "no results" |
 
-![RAG vs Graph-RAG accuracy by query type](images/rag-vs-graph-rag-accuracy.png)
-
 ## Architecture
 
-![RAG vs Graph-RAG architecture — same 300 documents processed through FAISS vector search and Neo4j knowledge graph for comparison](images/rag-vs-graphrag-architecture-comparison.png)
+![Two pipelines over the same 300 hotel FAQ documents: vector RAG chunks and embeds them into a FAISS index and the agent sees only the 3 closest chunks, while Graph-RAG extracts entities and relationships with neo4j-graphrag into a Neo4j graph and the agent queries it with Text2Cypher](images/rag-vs-graphrag-architecture-comparison.png)
 
 Two agents query the same 300 hotel FAQs with different approaches:
 - **RAG Agent** → FAISS similarity search → top 3 docs → LLM summarizes
@@ -199,7 +190,7 @@ If you add new documents with new entity types (Restaurant, Airport, etc.), the 
 
 **Model alternatives:** All demos work with OpenAI, Anthropic, or Ollama — see [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/)
 
-This demo uses Strands Agents. The same Graph-RAG pattern (knowledge graph + Text2Cypher) can be implemented with LangGraph, CrewAI, AutoGen, Haystack, or any framework that supports custom tool calling.
+This demo uses Strands Agents. The same Graph-RAG pattern (knowledge graph + Text2Cypher) can be implemented with any framework that supports custom tool calling.
 
 ---
 
@@ -207,7 +198,7 @@ This demo uses Strands Agents. The same Graph-RAG pattern (knowledge graph + Tex
 
 ### How much better is Graph-RAG than traditional RAG at preventing hallucinations?
 
-Research ([RAG-KG-IL, 2025](https://arxiv.org/pdf/2503.13514)) shows knowledge graphs reduce hallucinations by 73% compared to standalone LLMs. In this demo, Graph-RAG correctly answers aggregation queries (averages, counts) and multi-hop questions that traditional RAG consistently gets wrong by fabricating statistics from text chunks.
+This demo does not produce a hallucination-rate figure. What it shows is which queries each approach can answer at all: Graph-RAG computes aggregations (averages, counts) and follows multi-hop relationships in the database, while vector RAG answers those from the top-k chunks it retrieved and fabricates the numbers. Run the notebook and compare the two answers per query yourself.
 
 ### Do I need to define a schema for the knowledge graph?
 
@@ -218,6 +209,12 @@ No. The graph is built automatically using `neo4j-graphrag`'s `SimpleKGPipeline`
 The lite version (30 documents) takes approximately 15 minutes. The full version (300 documents) takes approximately 2 hours because each document requires LLM-based entity extraction (~30 seconds per document). You only need to build it once.
 
 ---
+
+## Further Reading
+
+- [RAG-KG-IL: A Multi-Agent Hybrid Framework for Reducing Hallucinations and Enhancing LLM Reasoning through RAG and Incremental Knowledge Graph Learning Integration](https://arxiv.org/abs/2503.13514) — case studies on health-related queries; reports hallucination counts of 35 for RAG-KG-IL, 49 for RAG-only and 129 for GPT-4.0, "a substantial reduction of around 73% in hallucinations for RAG-KG-IL compared to GPT-4.0", and 54 incompleteness instances for RAG-only. Different domain and different pipeline from this demo, so none of this demo's behavior is derived from those numbers.
+- [MetaRAG: Metamorphic Testing for Hallucination Detection in RAG Systems](https://arxiv.org/abs/2509.09360) — a testing method for detecting hallucinations in RAG pipelines.
+- [RAKG: Document-level Retrieval Augmented Knowledge Graph Construction](https://arxiv.org/abs/2504.09823v1) — automated knowledge graph construction from text, the same problem `SimpleKGPipeline` solves here.
 
 ## Next Demo
 

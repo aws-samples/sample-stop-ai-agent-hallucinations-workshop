@@ -6,15 +6,13 @@
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![FAISS](https://img.shields.io/badge/FAISS-Semantic_Filtering-blue.svg?style=flat)](https://github.com/facebookresearch/faiss)
 
-![Traditional vs Semantic Tool Discovery comparison](images/semantic-tool-selection-filtering.png)
+![Two bands over the same 31 tools. Sending all of them costs roughly 1,500 tokens per query, similar names such as search_hotels and search_real_hotels compete, and generic tools win by default. Filtering to the top 3 with FAISS costs roughly 150 to 275 tokens, narrows the choice with cosine distance over tool name and docstring, and swap_tools keeps the conversation](images/semantic-tool-selection-filtering.png)
 
-**AI agents with many similar tools pick the wrong one and waste tokens. This demo builds a travel agent with Strands Agents and uses FAISS to filter 29 tools down to the top 3 most relevant, comparing filtered vs unfiltered tool selection accuracy.**
-
-Based on research: ["Internal Representations as Indicators of Hallucinations in Agent Tool Selection"](https://arxiv.org/abs/2601.05214)
+**AI agents with many similar tools pick the wrong one and waste tokens. This demo builds a travel agent with Strands Agents and uses FAISS to filter 31 tools down to the top 3 most relevant, comparing filtered vs unfiltered tool selection accuracy.**
 
 ## The Problem
 
-Research ([Internal Representations, 2025](https://arxiv.org/abs/2601.05214)) identifies 5 critical agent failure modes when tools scale:
+Tool-calling hallucinations fall into five types, following the taxonomy in ["Internal Representations as Indicators of Hallucinations in Agent Tool Selection"](https://arxiv.org/abs/2601.05214):
 
 1. **Function selection errors** - Calling non-existent tools
 2. **Function appropriateness errors** - Choosing semantically wrong tools
@@ -24,13 +22,13 @@ Research ([Internal Representations, 2025](https://arxiv.org/abs/2601.05214)) id
 
 **The dual problem**:
 - ❌ **Hallucination risk**: More tools = more inappropriate selections
-- ❌ **Token waste**: Sending all tool descriptions on every call (29 tools = ~4,000 tokens per query)
+- ❌ **Token waste**: Sending all 31 tool descriptions on every call, whatever the query asks for
 
 ## The Solution
 
 Semantic tool selection filters tools **before** the agent sees them:
 
-![Flow diagram showing user query being embedded into a vector, FAISS index searching for top 3 most similar tool descriptions by cosine similarity, and filtered tools being injected into the agent instead of all 29 original tools](images/semantic-tool-selection.png)
+![Two phases. At startup build_index embeds the name and docstring of all 31 tools with Amazon Bedrock Nova 2 into a FAISS index. Per query, search_tools embeds the question with the same model, ranks all 31 by cosine distance, keeps the closest three, and hands the agent a list of 3 instead of 31](images/semantic-tool-selection.png)
 
 **Results**: Improved accuracy, fewer tokens
 
@@ -95,7 +93,7 @@ uv venv && uv pip install -r requirements.txt
 
 | File | Purpose |
 |------|---------|
-| `test_semantic_tools_hallucinations.ipynb` | **Main demo** - Comprehensive notebook with 29 tools, ground truth verification |
+| `test_semantic_tools_hallucinations.ipynb` | **Main demo** - Notebook with all 31 tools and ground truth verification |
 | `token_comparison_app.py` | **Token savings verification** - Standalone script to measure token reduction |
 | `enhanced_tools.py` | 31 travel agent tools (29 generic + 2 with optional Neo4j data) |
 | `registry.py` | FAISS-based semantic tool filtering |
@@ -107,9 +105,9 @@ Open `test_semantic_tools_hallucinations.ipynb` in your IDE (VS Code, Kiro, or a
 ```
 
 **What it does**:
-1. Tests 13 travel queries on 29 tools
-2. Compares Traditional (all 29 tools) vs Semantic (top 3 filtered)
-3. Verifies against ground truth (real hotel database)
+1. Tests 13 travel queries on 31 tools
+2. Compares Traditional (all 31 tools) vs Semantic (top 3 filtered)
+3. Verifies against ground truth (the Neo4j hotel database)
 4. Shows token savings and error reduction
 
 **Key features**:
@@ -132,16 +130,13 @@ uv run token_comparison_app.py
 - Demonstrates memory accumulation cost
 - Verifies `swap_tools()` preserves conversation history
 
-**Expected output**:
+**Where the tokens go**:
+- **Traditional**: all 31 tool descriptions, on every query
+- **Semantic**: only the 3 selected descriptions, on every query
+- **Memory**: those same 3 descriptions plus the conversation history, which grows each turn
 
-![Token reduction comparison — traditional vs semantic vs memory](images/semantic-tools-demo-tokens-reduction.png)
-
-![Accuracy and token cost comparison charts](images/semantic-tool-selection-results.png)
-
-**Token breakdown**:
-- **Traditional**: 29 tools × 50 tokens = ~1450 tokens/query (constant)
-- **Semantic**: 3 tools × 50 tokens = ~150 tokens/query (constant)
-- **Memory**: ~150 tokens + conversation history (~400 tokens/turn, accumulates)
+The notebook prints the counts each run produces from the Strands metrics
+(`result.metrics.accumulated_usage`), so the numbers you compare are your own.
 
 ## How It Works
 
@@ -150,7 +145,7 @@ uv run token_comparison_app.py
 # Agent sees ALL 31 tools on every query
 agent = Agent(tools=ALL_TOOLS, model=model)
 agent("How much does Hotel Marriott cost?")
-# Token cost: ~4,500 tokens (31 tool descriptions)
+# Token cost: all 31 tool descriptions, sent with every query
 # Risk: Picks wrong tool from 31 options
 ```
 
@@ -224,17 +219,16 @@ def get_top_hotels(country: str, limit: int = 5) -> str:
 
 These tools provide **ground truth** for objective accuracy measurement.
 
-## Research Background
+## Further Reading
 
-This demo implements findings from:
-- [Internal Representations as Indicators of Hallucinations](https://arxiv.org/abs/2601.05214) - Tool selection hallucinations increase with tool count
-- Production systems report 89% token reduction ([rconnect.tech](https://www.rconnect.tech/blog/semantic-tool-selection-guide))
+- [Internal Representations as Indicators of Hallucinations in Agent Tool Selection](https://arxiv.org/abs/2601.05214) — the source of the five-type taxonomy above. The paper detects tool-calling hallucinations from a model's internal representations; it does not evaluate embedding-based pre-filtering, so none of the numbers in this demo come from it.
+- [Semantic tool selection guide](https://www.rconnect.tech/blog/semantic-tool-selection-guide) — community observation reporting a similar order of token reduction.
 
 ## Frequently Asked Questions
 
 ### How much does semantic tool selection reduce token usage?
 
-Semantic filtering reduces token consumption by approximately 89%. Instead of sending all 29 tool descriptions (~1,450 tokens) on every query, FAISS-based filtering selects the top 3 relevant tools (~150 tokens). This reduction is constant per query and compounds across multi-turn conversations.
+It reduces them on every call, and this demo measures by how much rather than asserting a figure. Instead of sending all 31 tool descriptions on every query, FAISS-based filtering sends the top 3. The saving repeats on every query and compounds across multi-turn conversations. Run `token_comparison_app.py` to get the number for your own tool set — it depends entirely on how many tools you have and how long their docstrings are.
 
 ### Does filtering tools break conversation memory?
 
@@ -242,7 +236,7 @@ No. Strands Agents' `swap_tools()` function changes the available tools at runti
 
 ### Can I use semantic tool selection with other agent frameworks?
 
-Yes. The core pattern — embedding tool descriptions with FAISS and filtering by cosine similarity before the LLM sees them — is framework-agnostic. You can implement it in LangGraph, CrewAI, AutoGen, or any framework. Amazon Bedrock AgentCore Gateway also provides built-in [MCP semantic routing](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-using-mcp-semantic-search.html?trk=87c4c426-cddf-4799-a299-273337552ad8&sc_channel=el) for production workloads.
+Yes. The core pattern — embedding tool descriptions with FAISS and filtering by cosine similarity before the LLM sees them — is framework-agnostic. This demo uses Strands Agents; the same pattern carries over to any framework that supports custom tool calling. Amazon Bedrock AgentCore Gateway also provides built-in [MCP semantic routing](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-using-mcp-semantic-search.html?trk=87c4c426-cddf-4799-a299-273337552ad8&sc_channel=el) for production workloads.
 
 ---
 

@@ -1,0 +1,271 @@
+# Source for images/rag-hallucination-problem.png
+#
+# Render:
+#   d2 --theme 0 --pad 30 rag-hallucination-problem.d2 rag-hallucination-problem.png
+#   then downscale to 2200px wide (sips -Z 2200).
+#
+# Rules for editing (see the workshop repo's static/images/progressive-flow.d2 for
+# the full set):
+#  - No number appears here that the demo does not measure. The three failure modes
+#    are the ones the README prose describes, not benchmark results.
+#  - No red/green pair: the accessibility checklist forbids it. The contrast is gray
+#    (vector RAG) against AWS blue (Graph-RAG).
+#  - Say each thing once. The band labels name the two approaches, and the columns
+#    line up, so a card never repeats the failure mode its counterpart already names.
+#  - Two bands of cards is the only nesting that stays compact in d2 0.7.1. A row
+#    container adds roughly 60px of vertical padding at each level, so a 3x4 matrix
+#    built as nested row containers ends up twice as tall as its content. Do not
+#    reintroduce one; and never set grid-rows and grid-columns on the same
+#    container, which makes d2 fill the cells column by column.
+#  - Widths go on the inner text nodes, never on the card container: a container
+#    with an explicit width clips its text instead of wrapping it. Keep both bands
+#    at 3 * 480 so they end up the same width.
+#  - `label` is a reserved field in d2; a cell named `label:` silently becomes the
+#    parent's label instead of a node.
+
+grid-rows: 4
+vertical-gap: 26
+horizontal-gap: 24
+
+title: "Three ways RAG hallucinates" {
+  height: 48
+  style: {
+    font-size: 32
+    bold: true
+    stroke-width: 0
+    fill: transparent
+    font-color: "#16191F"
+  }
+}
+
+subtitle: "And what a graph does instead, on the same 300 hotel FAQ documents" {
+  height: 28
+  style: {
+    font-size: 17
+    stroke-width: 0
+    fill: transparent
+    font-color: "#5F6B7A"
+  }
+}
+
+rag: "Vector RAG   ·   the answer comes from the retrieved chunks" {
+  grid-columns: 3
+  horizontal-gap: 18
+  vertical-gap: 6
+  style: {
+    stroke: "#5F6B7A"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F7F8F9"
+    border-radius: 14
+    font-size: 21
+    font-color: "#4A5561"
+  }
+
+  a1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Fabricated statistics" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Writes a plausible average from\nthe chunks it happened to retrieve" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  a2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Incomplete retrieval" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Reads the 3 closest documents, so facts\nspread across the other 297 never arrive" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  a3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#8A96A3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Out-of-domain answers" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Returns the nearest documents even when\nnothing matches, and answers from them" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+}
+
+graphrag: "Graph-RAG   ·   the answer comes from a Cypher query" {
+  grid-columns: 3
+  horizontal-gap: 18
+  vertical-gap: 6
+  style: {
+    stroke: "#0972D3"
+    stroke-width: 2
+    stroke-dash: 5
+    fill: "#F6FAFE"
+    border-radius: 14
+    font-size: 21
+    font-color: "#0972D3"
+  }
+
+  b1: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Computed, not guessed" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "AVG and COUNT execute inside Neo4j\nover every node that matches" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  b2: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "Full traversal" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "Cypher walks the whole graph instead\nof a window of nearest neighbours" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+
+  b3: "" {
+    grid-rows: 2
+    vertical-gap: 6
+    style: {
+      stroke: "#0972D3"
+      stroke-width: 2
+      fill: "#FFFFFF"
+      border-radius: 10
+    }
+    t: "An explicit no" {
+      width: 480
+      height: 30
+      style: {
+        font-size: 19
+        bold: true
+        stroke-width: 0
+        fill: transparent
+        font-color: "#16191F"
+      }
+    }
+    s: "An empty result stays empty, and the\nagent reports that it has no data" {
+      width: 480
+      height: 50
+      style: {
+        font-size: 16
+        stroke-width: 0
+        fill: transparent
+        font-color: "#5F6B7A"
+      }
+    }
+  }
+}

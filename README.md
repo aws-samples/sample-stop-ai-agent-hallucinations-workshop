@@ -7,13 +7,13 @@
 [![License: MIT-0](https://img.shields.io/badge/License-MIT--0-green.svg)](LICENSE)
 [![Last Updated](https://img.shields.io/badge/Updated-March_2026-brightgreen.svg?style=flat)]()
 
-**AI agent hallucinations** occur when agents fabricate statistics, pick wrong tools, ignore business rules, or claim success when operations fail. This workshop provides 5 hands-on techniques — Graph-RAG, semantic tool selection, multi-agent validation, neurosymbolic guardrails, and agent steering — plus a production deployment demo on Amazon Bedrock AgentCore.
+**AI agent hallucinations** occur when agents fabricate statistics, pick wrong tools, ignore business rules, or claim success when operations fail. This workshop provides 5 hands-on techniques — Graph-RAG, semantic tool selection, multi-agent validation, neurosymbolic guardrails, and agent steering — plus two production deployment demos on Amazon Bedrock AgentCore.
 
 > Based on the Dev.to series [Stop AI Agent Hallucinations: 4 Essential Techniques](https://dev.to/aws/stop-ai-agent-hallucinations-4-essential-techniques-2i94) and [5 Techniques to Stop AI Agent Hallucinations in Production](https://dev.to/aws/5-techniques-to-stop-ai-agent-hallucinations-in-production-oik).
 
-Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The same patterns apply in LangGraph, AutoGen, CrewAI, or any other agent framework.
+Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The same patterns are general agent concepts and carry over to other agent frameworks.
 
-![Why AI Agents Fail — 6 progressive demos from hallucination research to production deployment on AWS](images/why-ai-agents-fail-six-demos-progressive-flow.png)
+![Two bands. Demos 01 to 05 are the five defenses you build locally: Graph-RAG returns empty instead of fabricating an answer, semantic tool selection sends the top 3 tool descriptions per query instead of all 31, multi-agent validation uses Executor, Validator and Critic to catch silent errors, agent guardrails put business rules in code and block 3 of 3 violations, and steering makes the agent self-correct and complete the booking. Demos 06 and 07 run that same code in production on Amazon Bedrock AgentCore, with AgentCore Runtime and Gateway, AWS Lambda, Amazon DynamoDB and a Neo4j knowledge graph, plus AgentCore Memory for recall across sessions](images/control-ai-agent-hallucinations-progressive-flow.png)
 
 ---
 
@@ -32,16 +32,17 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 | # | Demo | What It Solves | Key Result | Stack |
 |:-:|------|----------------|------------|-------|
-| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | 73% fewer hallucinations with knowledge graphs | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
-| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks, token waste at scale (29 tools) | 89% token reduction, higher accuracy | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Embeddings](https://img.shields.io/badge/Embeddings-teal?style=flat) |
+| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | Aggregations computed in Neo4j instead of guessed from chunks | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
+| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks, token waste at scale (31 tools) | Top 3 tools per query instead of all 31 | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Embeddings](https://img.shields.io/badge/Embeddings-teal?style=flat) |
 | 03 | [Multi-Agent Validation](./03-multiagent-demo/) | Undetected hallucinations, fabricated responses | Executor-Validator-Critic cross-check pipeline | ![Swarm](https://img.shields.io/badge/Swarm-green?style=flat) |
 | 04 | [Neurosymbolic Guardrails](./04-neurosymbolic-demo/) | Agents ignoring business rules in prompts | Symbolic rules enforced via lifecycle hooks | ![Hooks](https://img.shields.io/badge/Hooks-purple?style=flat) |
 | 05 | [Agent Control Steering](./05-steering-demo/) | Hard-blocking stops the task instead of fixing it | Agent self-corrects instead of failing | ![Agent Control](https://img.shields.io/badge/Agent_Control-orange?style=flat) |
 | 06 | [Amazon Bedrock AgentCore](./06-agentcore-boto3-demo/) | Taking all 5 techniques to production on AWS | Hotel booking agent on Amazon Bedrock AgentCore with Lambda + DynamoDB | ![AgentCore](https://img.shields.io/badge/Bedrock-AgentCore-FF9900?style=flat&logo=amazon-aws) ![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazon-dynamodb) ![Lambda](https://img.shields.io/badge/Lambda-FF9900?style=flat&logo=aws-lambda) |
+| 07 | [AgentCore Memory](./07-agentcore-memory-demo/) | An agent that forgets what the user told it in an earlier session | The deployed agent recalls preferences across sessions with AgentCore Memory | ![AgentCore](https://img.shields.io/badge/Bedrock-AgentCore-FF9900?style=flat&logo=amazon-aws) ![Memory](https://img.shields.io/badge/Memory-01A88D?style=flat) |
 
 ---
 
-## How Do the 6 Demos Build on Each Other?
+## How Do the Demos Build on Each Other?
 
 Each demo builds on the previous one. You can run any demo independently, but the learning path is designed to be progressive:
 
@@ -52,6 +53,8 @@ Each demo builds on the previous one. You can run any demo independently, but th
 **Phase 3 — Self-Correct:** Demo 05 shows *how to steer* agents to self-correct instead of blocking (Agent Control).
 
 **Phase 4 — Deploy to Production:** Demo 06 shows *how to ship* all 5 techniques to production on AWS using Amazon Bedrock AgentCore, DynamoDB, and Lambda.
+
+**Phase 5 — Remember Across Sessions:** Demo 07 adds AgentCore Memory so the deployed agent recalls what the user told it in earlier sessions.
 
 ---
 
@@ -105,7 +108,7 @@ This repository addresses four main categories: **(1)** fabricated statistics �
 
 ### Can I use these patterns with frameworks other than Strands Agents?
 
-Yes. The patterns (Graph-RAG, semantic tool filtering, multi-agent validation, neurosymbolic guardrails, steering controls) are framework-agnostic concepts. These demos use Strands Agents, but the same approaches apply in LangGraph, AutoGen, CrewAI, Haystack, or custom implementations. The key insight is architectural, not framework-specific.
+Yes. The patterns (Graph-RAG, semantic tool filtering, multi-agent validation, neurosymbolic guardrails, steering controls) are framework-agnostic concepts. These demos use Strands Agents, but the same approaches carry over to other agent frameworks and to custom implementations. The key insight is architectural, not framework-specific.
 
 ### Do I need an AWS account to run the demos?
 

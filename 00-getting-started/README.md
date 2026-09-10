@@ -161,7 +161,7 @@ See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/user-gui
 
 ### What is Strands Agents and how is it different from LangChain?
 
-[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, `@tool` decorator, and hook system. Similar patterns exist in [LangGraph](https://langchain-ai.github.io/langgraph/), [AutoGen](https://microsoft.github.io/autogen/), and [CrewAI](https://www.crewai.com/) — the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
+[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, `@tool` decorator, and hook system. Similar patterns exist in other agent frameworks — the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
 
 ### Why does the docstring matter for tool selection?
 

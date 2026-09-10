@@ -25,7 +25,8 @@ Single agents operate in isolation. When they hallucinate, there's no mechanism 
 
 Multiple specialized agents that validate each other, enhanced with Graph-RAG:
 
-![Diagram showing executor, validator, and critic agents in validation pipeline](images/single-vs-multi-agent-accuracy.png)
+![Two bands over the same booking request. A single agent does everything, nobody else checks the answer, and a confirmed booking at AnyCompany Antarctica reaches the user even though that hotel does not exist. The swarm splits the work across an Executor that holds the only tools, a Validator with no tools that compares the answer against the original request, and a Critic that returns APPROVED, SUSPICIOUS or INVALID, at the cost of 3 LLM calls instead of 1](images/executor-validator-critic-chain.png)
+
 ## Quick Start
 
 ### Prerequisites
@@ -193,9 +194,9 @@ The swarm returns a `Status.FAILED` result with an explanation of what went wron
 
 ### Does multi-agent validation increase latency?
 
-Yes, multi-agent validation adds latency because multiple LLM calls are needed (Executor + Validator + Critic). However, the tradeoff is significantly higher accuracy and an audit trail of cross-validation. For production use, [Demo 06](../06-agentcore-cdk-demo/) shows how to achieve similar validation with a single `validate_booking_rules` tool backed by DynamoDB for lower latency.
+Yes, multi-agent validation adds latency because multiple LLM calls are needed (Executor + Validator + Critic). However, the tradeoff is significantly higher accuracy and an audit trail of cross-validation. For production use, [Demo 06](../06-agentcore-boto3-demo/) shows how to achieve similar validation with a single `validate_booking_rules` tool backed by DynamoDB for lower latency.
 
-This demo uses Strands Agents Swarm. Similar multi-agent patterns can be implemented in LangGraph, CrewAI, AutoGen, or any framework that supports agent-to-agent handoffs.
+This demo uses Strands Agents Swarm. Similar multi-agent patterns can be implemented in any framework that supports agent-to-agent handoffs.
 
 ---
 
