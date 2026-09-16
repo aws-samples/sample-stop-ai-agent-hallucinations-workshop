@@ -122,6 +122,7 @@ hook = NeurosymbolicHook(STATE)
 agent = Agent(
     tools=[book_hotel, cancel_booking, process_payment, confirm_booking],
     hooks=[hook],
+    context_manager="auto",
 )
 
 tests = [

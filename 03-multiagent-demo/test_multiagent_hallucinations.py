@@ -46,6 +46,7 @@ single_agent = Agent(
     name="single",
     system_prompt="You are a hotel booking assistant. Use tools to complete requests.",
     tools=[search_hotels, book_hotel, get_booking],
+    context_manager="auto",
 )
 
 result = single_agent("Book anycompany_lisbon for John for 2 nights")
@@ -64,6 +65,7 @@ executor = Agent(
     system_prompt="""Execute booking requests using tools.
 After EVERY action, call handoff_to_agent to pass to 'validator'.""",
     tools=[search_hotels, book_hotel, get_booking],
+    context_manager="auto",
 )
 
 validator = Agent(
@@ -73,12 +75,14 @@ validator = Agent(
 - Is the response accurate?
 Say VALID or HALLUCINATION with reasons.
 Then call handoff_to_agent to pass to 'critic'.""",
+    context_manager="auto",
 )
 
 critic = Agent(
     name="critic",
     system_prompt="""Final review. Say APPROVED or REJECTED with reasoning.
 You are the last agent - do NOT hand off.""",
+    context_manager="auto",
 )
 
 swarm = Swarm([executor, validator, critic], entry_point=executor, max_handoffs=5)

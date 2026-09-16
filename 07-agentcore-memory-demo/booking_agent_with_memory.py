@@ -164,7 +164,8 @@ def get_or_create_agent(actor_id: str, session_id: str):
             tools=tools,
             system_prompt=SYSTEM_PROMPT,
             hooks=hooks,
-            session_manager=session_manager
+            session_manager=session_manager,
+            context_manager="auto"
         )
 
     return _agent

@@ -102,7 +102,7 @@ def run_test_1_hooks():
     print(f"Query: {QUERY}\n")
 
     hook = MaxGuestsHook()
-    agent = Agent(system_prompt=PROMPT, tools=ALL_TOOLS, hooks=[hook])
+    agent = Agent(system_prompt=PROMPT, tools=ALL_TOOLS, hooks=[hook], context_manager="auto")
 
     start = time.time()
     response = agent(QUERY)
@@ -179,7 +179,7 @@ def run_test_2_agent_control():
         enable_logging=False,
     )
 
-    agent = Agent(system_prompt=PROMPT, tools=ALL_TOOLS, plugins=[plugin, steering])
+    agent = Agent(system_prompt=PROMPT, tools=ALL_TOOLS, plugins=[plugin, steering], context_manager="auto")
 
     start = time.time()
     try:

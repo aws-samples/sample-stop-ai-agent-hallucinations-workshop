@@ -121,6 +121,7 @@ rag_agent = Agent(
     name="RAG_Agent",
     system_prompt="You are a travel agent. Use vector search to find relevant FAQ information.",
     tools=[search_faqs],
+    context_manager="auto",
     # model=MODEL  # Uncomment if using a custom model provider
 )
 
@@ -129,6 +130,7 @@ graph_agent = Agent(
     name="GraphRAG_Agent",
     system_prompt="You are a travel agent. Use the knowledge base to answer questions accurately. You can run multiple queries to explore the data.",
     tools=[query_knowledge_graph],
+    context_manager="auto",
     # model=MODEL  # Uncomment if using a custom model provider
 )
 

@@ -138,7 +138,7 @@ def invoke(payload, context=None):
 
     with mcp_client:
         tools = mcp_client.list_tools_sync()
-        agent = Agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT, hooks=hooks)
+        agent = Agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT, hooks=hooks, context_manager="auto")
 
         prompt = payload if isinstance(payload, str) else payload.get("prompt", "")
         result = agent(prompt)
