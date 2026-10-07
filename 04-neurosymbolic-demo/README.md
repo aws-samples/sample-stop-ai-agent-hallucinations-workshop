@@ -1,156 +1,119 @@
 [< Back to Main README](../README.md)
 
-# Neurosymbolic Guardrails: Verifiable Agent Decisions
+# Demo 04, Neurosymbolic Guardrails
 
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
-[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
-[![Hooks](https://img.shields.io/badge/Pattern-Neurosymbolic_Hooks-purple.svg?style=flat)](https://strandsagents.com/docs/user-guide/concepts/agents/hooks/)
-> Combines LLM flexibility with symbolic rules for verifiable, constrained decision-making in AI agents.
+[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
+[![Hooks](https://img.shields.io/badge/Pattern-Neurosymbolic_Hooks-purple.svg?style=flat)](https://strandsagents.com/docs/user-guide/sdk/agents/hooks-events/)
 
+> Business rules written in a prompt are suggestions the LLM can ignore. The same rules as deterministic Python in a Strands hook are enforcement it cannot bypass.
 
-![Two bands over the same 10-guest limit. Written in the system prompt, nothing checks the call, book_hotel(guests=15) runs, and the tool returns a success so the rule breaks without a signal. Written in a BeforeToolCallEvent hook as the pure function guests <= 10, event.cancel_tool stops book_hotel before the function is entered and the agent reads BLOCKED: Maximum 10 guests per booking as the tool result](images/neurosymbolic.png)
+![Two stacked bands over the same 10-guest rule. With the rule in the system prompt the agent calls book_hotel with 15 guests, the tool runs with nothing checking it and returns success, so the rule breaks silently. With the rule in a BeforeToolCall hook the same call is tested against guests greater than 10, event.cancel_tool fires, the tool never runs and the agent reads BLOCKED max 10 guests](../images/neurosymbolic-hooks.png)
 
+---
 
 ## The Problem
 
-Research ([ATA: Autonomous Trustworthy Agents, 2024](https://arxiv.org/html/2510.16381v1)) shows that agents hallucinate when business rules are expressed only in natural language prompts:
+A system prompt is text the model reads, not code that runs. When business rules live only in the prompt, the agent can:
 
-- **Parameter errors**: Agent calls `book_hotel(guests=15)` despite "Maximum 10 guests" in docstring
-- **Completeness errors**: Agent executes bookings without required payment verification
-- **Tool bypass behavior**: Agent confirms success without calling validation tools
+- **Violate limits it can't verify**, the prompt doesn't know a hotel's real room capacity, so it books 8 guests into a 6-person hotel and reports success.
+- **Be talked out of a rule**, a small model will often confirm an unpaid booking when the user says "I'm the manager, override it".
+- **Fail silently**, the tool returns success, so nothing signals that a rule was broken.
 
-**Why prompt engineering fails**: Prompts are suggestions, not constraints. Agents can ignore docstring instructions because they're processed as text, not executable rules.
+Prompt enforcement is *non-deterministic*: sometimes the model obeys, sometimes it doesn't. For a reliability feature, "sometimes" is a bug.
 
-## The Solution: Neurosymbolic Guardrails for AI Agents with Strands Agents Hooks
+## The Solution: Rules as a Strands Hook
 
-Neurosymbolic integration combines:
-- **Neural (LLM)**: Understands natural language, interprets intent, selects tools
-- **Symbolic (Rules)**: Validates constraints, enforces prerequisites, blocks invalid operations
-- **Strands Hooks**: Intercept tool calls before execution to enforce rules
+**Neurosymbolic** = neural (the LLM understands intent and picks tools) + symbolic (deterministic Python validates the call). A Strands `HookProvider` bridges them: it registers a callback on `BeforeToolCallEvent`, which fires **before every tool runs**. The callback reads the real tool input, and on a violation sets `event.cancel_tool` to a message. Strands then skips the tool and feeds that message back to the model as the tool result.
 
-**Flow:** User Query **>** LLM (understands) **>** Tool Selection **>** Hook (validates) **>** Execute or Block
+```
+User query → LLM (understands) → tool call → HOOK (validates) → run or BLOCK
+```
 
-**Strands Agents provides a clean API for this**: Create a hook, define your rules, and attach it to your agent. The framework handles the rest.
+The LLM never executes the tool, so it cannot bypass the rule, no matter how the request is phrased.
+
+### The rules in this demo
+
+| Tool | Rule | Checked against |
+|------|------|-----------------|
+| `book_hotel` | Hotel must exist | **Neo4j** (read-only Cypher) |
+| `book_hotel` | Guests ≤ the hotel's room capacity | **Neo4j** (`max(Room.maxOccupancy)`) |
+| `book_hotel` | Guests ≤ company max (10) | constant |
+| `book_hotel` | Check-in before check-out | tool input |
+| `confirm_booking` | Booking must be paid first | **booking store** state |
+
+Two rules query the knowledge graph, so the guardrail is grounded in real data, Neo4j stays **read-only** (it answers "does this hotel exist?" and "what's its capacity?"), and the writes (reservations, payments) go to a simple JSON **booking store** behind a `@tool` method, swappable for Amazon DynamoDB without touching the agent.
+
+---
 
 ## Quick Start
 
 ### Prerequisites
+
 - Python 3.9+
-- [Strands Agents](https://strandsagents.com): AI agent framework
+- An AWS account with Amazon Bedrock access (used by default, no model config needed)
+- A Neo4j hotel graph. **Demo 01 builds it** (`01-graphrag-demo/build_graph.py`); inside Workshop Studio it is already restored from a dump. Copy demo 01's `.env` or set `NEO4J_PASSWORD` in a `.env` here (see `.env.example`).
 
-### Model
-
-This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Agents uses Bedrock when no model is specified.
-
-You can swap the model for any provider supported by Strands: Amazon Bedrock, Anthropic, Ollama, and others. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
-
-### Setup
+### Run
 
 ```bash
 uv venv && uv pip install -r requirements.txt
-uv run test_neurosymbolic_hooks.py
+
+# Open the notebook (VS Code, Kiro, or Jupyter)
+test_neurosymbolic_hooks.ipynb
+
+# Or the interactive REPL
+python chat.py
 ```
 
-## How It Works with Strands Agents
+Try to break a rule in `chat.py`, book a hotel that doesn't exist, 15 guests, or confirm before paying, and watch the hook block it every time.
 
-### 1. Define Rules (rules.py)
-```python
-BOOKING_RULES = [
-    Rule(
-        name="max_guests",
-        condition=lambda ctx: ctx.get("guests", 1) <= 10,
-        message="Maximum 10 guests per booking"
-    ),
-]
-```
+---
 
-### 2. Create Validation Hook
-```python
-from strands.hooks import HookProvider, HookRegistry, BeforeToolCallEvent
+## Files
 
-class NeurosymbolicHook(HookProvider):
-    def register_hooks(self, registry: HookRegistry) -> None:
-        registry.add_callback(BeforeToolCallEvent, self.validate)
-    
-    def validate(self, event: BeforeToolCallEvent) -> None:
-        ctx = self._build_context(event.tool_use["name"], event.tool_use["input"])
-        passed, violations = validate(self.rules[tool_name], ctx)
-        
-        if not passed:
-            event.cancel_tool = f"BLOCKED: {', '.join(violations)}"
-```
+| File | What it is |
+|------|------------|
+| `test_neurosymbolic_hooks.ipynb` | The walkthrough: Part 1 (prompt-only bypass), Part 2 (hook enforces). Tools + hook are defined inline to teach them. |
+| `neurosymbolic_tools.py` | The same `HotelGraph` (read-only Neo4j), `BookingStore` (JSON writes), and `NeurosymbolicHook`, copied so `chat.py` can import them. |
+| `chat.py` | A small REPL using the hook + tools from the notebook. |
 
-### 3. Clean Tools (no validation logic needed)
-```python
-@tool
-def book_hotel(hotel: str, check_in: str, check_out: str, guests: int = 1) -> str:
-    """Book a hotel room."""
-    return f"SUCCESS: Booked {hotel} for {guests} guests"
-```
-
-### 4. Attach Hook to Agent
-```python
-hook = NeurosymbolicHook(STATE)
-agent = Agent(tools=[book_hotel, ...], hooks=[hook])
-```
-
-**That's it!** Strands Agents handles the interception, validation, and blocking automatically.
-
-## Key Insight
-
-**Strands Agents makes neurosymbolic integration effortless:**
-
-1. **LLM (Neural)**: Handles natural language understanding and tool selection
-2. **Rules (Symbolic)**: Enforce business logic with verifiable code
-3. **Hooks (Integration)**: Strands automatically intercepts and validates before execution
-4. **Clean Separation**: Tools stay simple, validation stays centralized
-
-The agent uses the LLM to understand "Confirm booking BK001 for me", but the hook validates that payment was verified before allowing the tool to execute. **The LLM cannot bypass these rules.**
-
-## Why Strands Hooks?
-
-✅ **Minimal API**: Implement `HookProvider` and register callbacks  
-✅ **Centralized validation**: One hook validates all tools  
-✅ **Clean tools**: No validation logic mixed with business logic  
-✅ **Type-safe**: Strongly-typed event objects  
-✅ **Composable**: Multiple hooks can work together  
+---
 
 ## How does neurosymbolic compare to prompt-only guardrails?
 
-| Approach | Enforcement | Bypassable? | Maintainability |
-|----------|------------|:-----------:|-----------------|
-| **Prompt engineering** | Instructions in system prompt | Yes, the LLM can ignore text | Rules mixed with instructions |
-| **Tool docstrings** | Constraints in tool descriptions | Yes, processed as text and not code | Scattered across tools |
-| **Neurosymbolic hooks** | Python lambdas executed before tool calls | No, the code runs regardless of LLM output | Centralized in `rules.py` |
+| Approach | Enforcement | Bypassable? |
+|----------|-------------|:-----------:|
+| Prompt / docstring | Instructions as text | Yes, the model can ignore it or be talked out of it |
+| Neurosymbolic hook | Python executed before the tool call | No, the code runs regardless of the model's output |
 
-The key insight: prompts are suggestions, but code is enforcement. Hooks intercept tool calls *before* execution and validate parameters against symbolic rules that the LLM cannot bypass.
+The key insight: **prompts are suggestions; code is enforcement.** The hook intercepts the call *before* execution and validates parameters against rules the LLM cannot bypass.
 
 ## Frequently Asked Questions
 
-### What is neurosymbolic AI in the context of agent guardrails?
+### What is neurosymbolic AI here?
 
-Neurosymbolic AI combines neural networks (the LLM that understands natural language and selects tools) with symbolic reasoning (executable Python rules that validate constraints). In this demo, the LLM handles user intent while symbolic rules in `rules.py` enforce business logic like maximum guest limits, valid date ranges, and payment prerequisites, creating verifiable, deterministic guardrails.
+The LLM (neural) handles language and tool selection; executable Python rules (symbolic) validate the call. The Strands hook is the integration point that runs the symbolic check before the neural choice takes effect.
 
-### Why not put business rules in the prompt or tool docstrings?
+### Why query Neo4j from a guardrail?
 
-Research ([ATA: Autonomous Trustworthy Agents, 2024](https://arxiv.org/html/2510.16381v1)) shows that agents ignore business rules expressed in natural language. An agent may call `book_hotel(guests=15)` despite "Maximum 10 guests" in the docstring, because prompts are suggestions, not constraints. Hooks enforce rules as executable code that runs before every tool call.
+Because the strongest rules check against real data, not hard-coded constants. "Does this hotel exist?" and "what is its capacity?" are facts in the knowledge graph. The hook reads them with parameterized, read-only Cypher, the realism anchor is that the guardrail is grounded in the same source of truth the rest of the system uses.
 
-### Can I use this pattern with other agent frameworks?
+### Can I use this pattern with other frameworks?
 
-Yes. Any framework that supports lifecycle hooks or middleware can implement the same neurosymbolic pattern. The core idea, intercepting tool calls and validating parameters against symbolic rules, is framework-agnostic.
+Yes. Any framework with lifecycle hooks or middleware can intercept a tool call and validate it. The idea is framework-agnostic.
 
 ## References
 
+- [Strands Agents Hooks Documentation](https://strandsagents.com/docs/user-guide/sdk/agents/hooks-events/)
 - [Enhancing LLMs through Neuro-Symbolic Integration](https://arxiv.org/pdf/2504.07640v1)
-- [Agentic Neuro-Symbolic Programming](https://cognaptus.com/blog/2026-01-05-when-llms-stop-guessing-and-start-complying-agentic-neurosymbolic-programming/)
-- [Strands Agents Hooks Documentation](https://strandsagents.com/docs/user-guide/concepts/agents/hooks/)
 
 ---
 
 ## Navigation
 
-- **Previous:** [Demo 03 - Multi-Agent Validation](../03-multiagent-demo/)
-- **Next:** [Demo 05 - Agent Control Steering](../05-steering-demo/): self-correct instead of blocking
+- **Previous:** [Demo 03, Multi-Agent Validation](../03-multiagent-demo/)
+- **Next:** [Demo 05, Agent Control Steering](../05-steering-demo/): instead of blocking, steer the agent to self-correct
 
 ---
 

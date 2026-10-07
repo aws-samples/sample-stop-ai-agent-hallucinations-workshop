@@ -1,7 +1,7 @@
 # How to Stop AI Agent Hallucinations: 5 Techniques + Production on Amazon Bedrock AgentCore
 
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
-[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
+[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 [![Neo4j](https://img.shields.io/badge/Neo4j-Graph--RAG-4581C3.svg?style=flat&logo=neo4j)](https://neo4j.com)
 [![License: MIT-0](https://img.shields.io/badge/License-MIT--0-green.svg)](LICENSE)
@@ -13,7 +13,7 @@
 
 Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The same patterns are general agent concepts and carry over to other agent frameworks.
 
-![Two bands. Demos 01 to 05 are the five defenses you build locally: Graph-RAG returns empty instead of fabricating an answer, semantic tool selection sends the top 3 tool descriptions per query instead of all 31, multi-agent validation uses Executor, Validator and Critic to catch silent errors, agent guardrails put business rules in code and block 3 of 3 violations, and steering makes the agent self-correct and complete the booking. Demos 06 and 07 run that same code in production on Amazon Bedrock AgentCore, with AgentCore Runtime and Gateway, AWS Lambda, Amazon DynamoDB and a Neo4j knowledge graph, plus AgentCore Memory for recall across sessions](images/control-ai-agent-hallucinations-progressive-flow.png)
+![Two bands. Demos 01 to 05 are the five defenses you build locally: Graph-RAG computes exact aggregations in Neo4j and returns empty instead of fabricating an answer, semantic tool selection sends the top 3 relevant tool descriptions per query instead of all ~40, multi-agent validation asks a consortium of heterogeneous models the same judgement question and flags disagreement as likely hallucination, neurosymbolic guardrails put business rules in code and block violations, and native steering makes the agent self-correct and complete the booking. Demos 06 and 07 run that same code in production on Amazon Bedrock AgentCore, with AgentCore Runtime and Gateway, AWS Lambda, Amazon DynamoDB and a Neo4j knowledge graph, plus AgentCore Memory for recall across sessions](images/control-ai-agent-hallucinations-progressive-flow.png)
 
 ---
 
@@ -21,10 +21,17 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 | Approach | Hallucination Risk | Retrieval Method | Best For |
 |---|---|---|---|
-| Standard RAG (vector) | High, because it returns similar content even when it is irrelevant | Cosine similarity | General Q&A |
-| Graph-RAG (Neo4j) | Lower, because answers are grounded in entity relationships | Graph traversal + Cypher | Structured domains (hotels, products, finance) |
+| Standard RAG (vector) | High, because it returns the most *similar* chunks even when the exact answer isn't in them | Cosine similarity over embedded chunks | Open-ended Q&A |
+| Graph-RAG (Neo4j) | Lower for structured questions, because answers are computed from entity relationships | Graph traversal + Cypher (exact `COUNT`/`AVG`/filters) | Structured domains (hotels, products, finance) |
 
-> **Key insight:** Vector search always returns *something similar*, even when the answer doesn't exist in the database, and that is where fabrication starts. Graph-RAG returns only what's explicitly connected in the knowledge graph.
+> **Key insight:** vector search always returns the top-k most similar chunks, so for a question like "how many hotels have a pool?" it answers from ~3 chunks and *guesses* the total. Graph-RAG runs an exact Cypher aggregation over every hotel and returns an honest "no results" when nothing matches.
+
+**It is hybrid, and the demo is honest about that.** The Neo4j build (demo 01) stores both: a structured entity graph (`Hotel`, `Room`, `Amenity`, …) *and* a vector layer of embedded text. Two node types matter:
+
+- **`Document`**, one node per source FAQ file (the origin).
+- **`Chunk`**, slices of a document, each stored with a vector embedding; this is the layer vector search queries.
+
+The entities come from Cypher traversal (no vectors). So the anti-hallucination value of Graph-RAG is the **structured side**, exact aggregation and honest empty results, not the chunks. A **fixed extraction schema** keeps that structured side deterministic, so adding a new hotel is safe and the agent's Cypher always matches reality (see [demo 01](./01-graphrag-demo/)).
 
 ---
 
@@ -32,13 +39,15 @@ Built with [Strands Agents](https://strandsagents.com) and Amazon Bedrock. The s
 
 | # | Demo | What It Solves | Key Result | Stack |
 |:-:|------|----------------|------------|-------|
-| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | Aggregations computed in Neo4j instead of guessed from chunks | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
-| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks, token waste at scale (31 tools) | Top 3 tools per query instead of all 31 | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Embeddings](https://img.shields.io/badge/Embeddings-teal?style=flat) |
-| 03 | [Multi-Agent Validation](./03-multiagent-demo/) | Undetected hallucinations, fabricated responses | Executor-Validator-Critic cross-check pipeline | ![Swarm](https://img.shields.io/badge/Swarm-green?style=flat) |
-| 04 | [Neurosymbolic Guardrails](./04-neurosymbolic-demo/) | Agents ignoring business rules in prompts | Symbolic rules enforced via lifecycle hooks | ![Hooks](https://img.shields.io/badge/Hooks-purple?style=flat) |
-| 05 | [Agent Control Steering](./05-steering-demo/) | Hard-blocking stops the task instead of fixing it | Agent self-corrects instead of failing | ![Agent Control](https://img.shields.io/badge/Agent_Control-orange?style=flat) |
-| 06 | [Amazon Bedrock AgentCore](./06-agentcore-boto3-demo/) | Taking all 5 techniques to production on AWS | Hotel booking agent on Amazon Bedrock AgentCore with Lambda + DynamoDB | ![AgentCore](https://img.shields.io/badge/Bedrock-AgentCore-FF9900?style=flat&logo=amazon-aws) ![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazon-dynamodb) ![Lambda](https://img.shields.io/badge/Lambda-FF9900?style=flat&logo=aws-lambda) |
+| 01 | [Graph-RAG vs RAG](./01-graphrag-demo/) | Fabricated statistics, incomplete retrieval, out-of-domain hallucination | Exact aggregations computed in Neo4j; honest "no results" instead of a plausible lie | ![Neo4j](https://img.shields.io/badge/Neo4j-4581C3?style=flat&logo=neo4j&logoColor=white) ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) |
+| 02 | [Semantic Tool Selection](./02-semantic-tools-demo/) | Wrong tool picks and token waste with a large toolset (~40 tools) | A hook trims to the top-3 relevant tools per request: ~73% fewer tokens, accuracy equal-or-better | ![FAISS](https://img.shields.io/badge/FAISS-blue?style=flat) ![Hooks](https://img.shields.io/badge/Hooks-purple?style=flat) |
+| 03 | [Multi-Agent Validation](./03-multiagent-demo/) | Confident guesses on judgement questions with no single right answer | Consortium of heterogeneous models; agreement = confident, divergence = likely hallucination | ![Bedrock](https://img.shields.io/badge/Claude_+_Nova-FF9900?style=flat&logo=amazon-aws) |
+| 04 | [Neurosymbolic Guardrails](./04-neurosymbolic-demo/) | Agents ignoring business rules written only in prompts | Rules enforced in code via lifecycle hooks, validated against Neo4j | ![Hooks](https://img.shields.io/badge/Hooks-purple?style=flat) |
+| 05 | [Agent Steering](./05-steering-demo/) | Hard-blocking stops the task instead of fixing it | Native Strands steering guides the agent to self-correct and complete the booking | ![Steering](https://img.shields.io/badge/Steering-orange?style=flat) |
+| 06 | [Amazon Bedrock AgentCore](./06-agentcore-boto3-demo/) | Taking the techniques to production on AWS | Hotel booking agent on Amazon Bedrock AgentCore with Lambda + DynamoDB | ![AgentCore](https://img.shields.io/badge/Bedrock-AgentCore-FF9900?style=flat&logo=amazon-aws) ![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazon-dynamodb) ![Lambda](https://img.shields.io/badge/Lambda-FF9900?style=flat&logo=aws-lambda) |
 | 07 | [AgentCore Memory](./07-agentcore-memory-demo/) | An agent that forgets what the user told it in an earlier session | The deployed agent recalls preferences across sessions with AgentCore Memory | ![AgentCore](https://img.shields.io/badge/Bedrock-AgentCore-FF9900?style=flat&logo=amazon-aws) ![Memory](https://img.shields.io/badge/Memory-01A88D?style=flat) |
+
+> **When is multi-agent the right tool?** Demo 03 uses a consortium of models for **judgement questions that have no single database answer**. For questions with a deterministic answer, prefer Graph-RAG (demo 01) or in-code guardrails (demo 04), they are cheaper and more reliable than a second agent. The honest boundary is part of the lesson.
 
 ---
 
@@ -50,7 +59,7 @@ Each demo builds on the previous one. You can run any demo independently, but th
 
 **Phase 2: Detect and Prevent.** Demos 03-04 show *how to catch* failures: multi-agent validation and symbolic rule enforcement.
 
-**Phase 3: Self-Correct.** Demo 05 shows *how to steer* agents to self-correct instead of blocking (Agent Control).
+**Phase 3: Self-Correct.** Demo 05 shows *how to steer* agents to self-correct instead of blocking (native Strands steering).
 
 **Phase 4: Deploy to Production.** Demo 06 shows *how to ship* all 5 techniques to production on AWS using Amazon Bedrock AgentCore, DynamoDB, and Lambda.
 
@@ -120,7 +129,7 @@ Demos 02-05 run in under 5 minutes. Demo 01 has a lite mode (30 docs, ~15 minute
 
 ### What LLM providers are supported?
 
-All demos default to Amazon Bedrock (Claude Sonnet 4) but work with any provider supported by Strands Agents: Anthropic API, OpenAI, Ollama (local models), or any OpenAI-compatible endpoint. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
+All demos default to Amazon Bedrock (Claude Sonnet 4) but work with any provider supported by Strands Agents: Anthropic API, Ollama (local models). See [Strands Model Providers](https://strandsagents.com/docs/user-guide/sdk/model-providers/amazon-bedrock/) for configuration.
 
 ---
 
@@ -132,7 +141,7 @@ All demos default to Amazon Bedrock (Claude Sonnet 4) but work with any provider
 
 **OpenTelemetry warnings:** "Failed to detach context" warnings in demos 03-05 are harmless and do not affect functionality.
 
-**Model alternatives:** Change the model in any demo by modifying the `BedrockModel(model_id=...)` call. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for all supported options.
+**Model alternatives:** Change the model in any demo by modifying the `BedrockModel(model_id=...)` call. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/sdk/model-providers/amazon-bedrock/) for all supported options.
 
 For demo-specific issues, check the troubleshooting section in each demo's README.
 
@@ -163,4 +172,4 @@ If you discover a potential security issue in this project, notify AWS/Amazon Se
 
 This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file for details.
 
-> Last updated: March 2026 | Strands Agents 1.27+ | Python 3.9+
+> Last updated: October 2026 | Strands Agents 1.58 | Python 3.10+

@@ -1,2 +1,4 @@
-strands-agents>=1.56.0
-boto3>=1.35.0
+strands-agents==1.58.0
+neo4j==6.4.0
+boto3==1.43.108
+python-dotenv==1.2.4

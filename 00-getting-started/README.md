@@ -2,10 +2,10 @@
 
 # Build AI Agents with Strands Agents and Amazon Bedrock: Workshop Primer
 
-Get up and running with [Strands Agents](https://strandsagents.com) in under 30 minutes. This notebook covers every core concept used throughout the workshop (agents, tools, lifecycle hooks, and multi-agent swarms) with runnable examples and explanations.
+Get up and running with [Strands Agents](https://strandsagents.com) in under 30 minutes. This notebook covers the core concepts used throughout the workshop (agents, model providers, tools, token metrics, lifecycle hooks, and multi-agent swarms) with runnable examples and short explanations.
 
 [![Python](https://img.shields.io/badge/Python-3.9+-green.svg?style=flat)](https://python.org)
-[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
+[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 
 > **Already familiar with Strands Agents?** Skip to [`01-graphrag-demo/`](../01-graphrag-demo/) and come back here if you need a refresher on hooks or swarms.
@@ -14,13 +14,18 @@ Get up and running with [Strands Agents](https://strandsagents.com) in under 30 
 
 ## What This Notebook Covers
 
+Each concept maps to a cell in `getting_started_strands.ipynb`:
+
 | Concept | What it does | Used in |
 |---------|-------------|---------|
 | `Agent` + system prompt | Creates an LLM-powered agent that reasons and acts | All demos |
-| Model providers | Switch between Bedrock, Anthropic, Ollama, or any OpenAI-compatible endpoint | All demos |
+| Model providers | Amazon Bedrock by default; switch to Anthropic, Ollama | All demos |
 | `@tool` decorator | Expose Python functions as tools the agent can call | All demos |
-| `BeforeToolCallEvent` + `cancel_tool` | Block tool calls that violate rules, the LLM cannot bypass them | Demos 04, 05, 06 |
-| `Swarm` | Multi-agent handoff chain (Executor → Validator → Critic) | Demo 03 |
+| `AgentResult.metrics` | Native token counting (input / output / total) | Demos 01, 02 |
+| `BeforeToolCallEvent` + `cancel_tool` | Block tool calls that violate rules, the LLM cannot bypass them | Demos 04, 05 |
+| `Swarm` | Multi-agent handoff chain | Demo 03 |
+
+> The workshop builds on these. The anti-hallucination techniques (Graph-RAG, semantic tool selection, multi-agent validation, neurosymbolic guardrails, steering) are all layered on top of this primer.
 
 ---
 
@@ -28,6 +33,7 @@ Get up and running with [Strands Agents](https://strandsagents.com) in under 30 
 
 - Python 3.9+
 - [uv](https://docs.astral.sh/uv/) package manager
+- An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access. **No external API key is needed**, Amazon Bedrock is the default provider everywhere in this workshop.
 
 **At an AWS event:** AWS credentials and dependencies are pre-configured. Run the first notebook cell as-is, no setup needed.
 
@@ -56,7 +62,7 @@ Open `getting_started_strands.ipynb` in your IDE (VS Code, Kiro, or any editor w
 
 ### 1. Creating an Agent
 
-An agent combines an LLM with a system prompt and optional tools. [Amazon Bedrock](https://aws.amazon.com/bedrock/) is the default model provider. At an AWS event, credentials are pre-configured. Self-paced users need to configure AWS credentials first (see Prerequisites above).
+An agent combines an LLM with a system prompt and optional tools. [Amazon Bedrock](https://aws.amazon.com/bedrock/) is the default model provider, so no model configuration is needed when your AWS credentials are set.
 
 ```python
 from strands import Agent
@@ -76,7 +82,7 @@ agent = Agent(
 )
 ```
 
-See all supported providers: [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/)
+See all supported providers: [Strands Model Providers](https://strandsagents.com/docs/user-guide/sdk/model-providers/amazon-bedrock/)
 
 ---
 
@@ -96,13 +102,27 @@ agent = Agent(tools=[search_hotels], system_prompt="You are a booking assistant.
 agent("Find hotels in Lisbon under $100")
 ```
 
-> **Docstrings are critical.** The agent uses them to match user queries to tools. A vague docstring leads to wrong tool selection, and Demo 02 covers this in depth.
+> **Docstrings are critical.** The agent uses them to match user queries to tools. A vague docstring leads to wrong tool selection, Demo 02 covers this in depth.
 
-See: [Strands Tools Documentation](https://strandsagents.com/docs/user-guide/concepts/tools/custom-tools/)
+See: [Strands Tools Documentation](https://strandsagents.com/docs/user-guide/sdk/tools/custom-tools/)
 
 ---
 
-### 3. Lifecycle Hooks: Enforcing Rules the LLM Cannot Bypass
+### 3. Token Metrics
+
+Strands reports token usage natively on every result through `AgentResult.metrics.accumulated_usage`, no custom helpers needed. The workshop uses this to compare cost between approaches (RAG vs Graph-RAG in Demo 01, all-tools vs filtered in Demo 02).
+
+```python
+result = agent("What is the capital of Portugal?")
+usage = result.metrics.accumulated_usage
+print(usage["inputTokens"], usage["outputTokens"], usage["totalTokens"])
+```
+
+See: [Strands Metrics Documentation](https://strandsagents.com/docs/user-guide/sdk/observability-evaluation/metrics/)
+
+---
+
+### 4. Lifecycle Hooks: Enforcing Rules the LLM Cannot Bypass
 
 Hooks intercept the agent's execution at specific points. `BeforeToolCallEvent` fires after the LLM decides to call a tool but **before** the tool executes. Setting `event.cancel_tool` blocks the call entirely, so the LLM receives the cancellation message instead of the tool result and cannot override it.
 
@@ -120,16 +140,16 @@ class MaxGuestsHook(HookProvider):
             if guests > 10:
                 event.cancel_tool = f"BLOCKED: {guests} guests exceeds maximum of 10"
 
-agent = Agent(tools=[book_room], hooks=[MaxGuestsHook()], ...)
+agent = Agent(tools=[book_room], hooks=[MaxGuestsHook()]...)
 ```
 
-This pattern is the foundation of Demos 04, 05, and 06. See: [Strands Hooks Documentation](https://strandsagents.com/docs/user-guide/concepts/agents/hooks/)
+This pattern is the foundation of Demos 04 and 05. See: [Strands Hooks Documentation](https://strandsagents.com/docs/user-guide/sdk/agents/hooks-events/)
 
 ---
 
-### 4. Multi-Agent Swarms
+### 5. Multi-Agent Swarms
 
-A swarm is a group of agents that hand off work to each other in sequence. Each agent has a specific role. Strands manages the handoff chain automatically.
+A swarm is a group of agents that hand off work to each other in sequence. Each agent has a specific role, and Strands manages the handoff chain automatically.
 
 ```python
 from strands.multiagent import Swarm
@@ -138,11 +158,11 @@ executor  = Agent(name="Executor",  tools=[lookup_hotel], system_prompt="Look up
 validator = Agent(name="Validator", system_prompt="Verify if the response is consistent.")
 critic    = Agent(name="Critic",    system_prompt="Give a final verdict: VALID or SUSPICIOUS.")
 
-swarm = Swarm(agents=[executor, validator, critic], max_handoffs=5)
+swarm = Swarm(nodes=[executor, validator, critic], max_handoffs=5)
 swarm("What are the details for AnyCompany Lisbon Resort?")
 ```
 
-See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/user-guide/concepts/multi-agent/)
+This primer uses a simple Executor → Validator → Critic swarm to introduce the handoff mechanism. Demo 03 builds a different, research-backed multi-agent pattern (a heterogeneous model *consortium*) on top of the same `Swarm`/multi-agent foundation. See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/learning/multi-agent-patterns-graph-workflows/)
 
 ---
 
@@ -151,9 +171,10 @@ See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/user-gui
 | Concept | Why it matters for hallucination prevention |
 |---------|---------------------------------------------|
 | `@tool` + clear docstrings | Accurate tool selection reduces tool-mismatch hallucinations (Demo 02) |
+| `AgentResult.metrics` | Measure the token cost of each approach honestly (Demos 01, 02) |
 | `BeforeToolCallEvent` + `cancel_tool` | Enforces business rules the LLM cannot invent its way around (Demo 04) |
-| STEER messages in `cancel_tool` | Instead of blocking, guide the agent to self-correct (Demo 05) |
-| `Swarm` with Validator + Critic | Catches fabricated responses before they reach the user (Demo 03) |
+| Steering (`Guide` instead of block) | Instead of blocking, guide the agent to self-correct and finish (Demo 05) |
+| `Swarm` / multiple models | Cross-check answers before they reach the user (Demo 03) |
 
 ---
 
@@ -161,19 +182,19 @@ See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/user-gui
 
 ### What is Strands Agents and how is it different from LangChain?
 
-[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, `@tool` decorator, and hook system. Similar patterns exist in other agent frameworks, and the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
+[Strands Agents](https://strandsagents.com) is an open-source Python framework for building AI agents. It focuses on simplicity: a single `Agent` class, a `@tool` decorator, and a hook system. Similar patterns exist in other agent frameworks, and the workshop concepts (tool calling, guardrails, multi-agent validation) apply to all of them.
 
 ### Why does the docstring matter for tool selection?
 
-The agent uses the function name and docstring as the tool's description when deciding which tool to call. If two tools have similar or vague docstrings, the agent may pick the wrong one. Demo 02 measures this problem quantitatively (89% token reduction with semantic filtering) and shows how to fix it.
+The agent uses the function name and docstring as the tool's description when deciding which tool to call. If two tools have similar or vague docstrings, the agent may pick the wrong one. Demo 02 measures this problem quantitatively and shows how to reduce it with semantic filtering.
 
 ### Do I need an AWS account to run this notebook?
 
-Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and the model enabled in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess). At an AWS event, the account and credentials are provided, so no setup is required.
+Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and the model enabled in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess). At an AWS event, the account and credentials are provided, so no setup is required. No external API key is needed.
 
 ### Can I use a different LLM provider?
 
-Yes. Change the `model` parameter to use any provider supported by Strands Agents: Anthropic API directly, Ollama (local models), or any OpenAI-compatible endpoint. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/) for configuration details.
+Yes. Change the `model` parameter to use any provider supported by Strands Agents: Anthropic API directly, Ollama (local models). Amazon Bedrock is the default used throughout this workshop. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/sdk/model-providers/) for configuration details.
 
 ### What is `cancel_tool` and how is it different from a prompt instruction?
 
@@ -203,4 +224,4 @@ If you discover a potential security issue in this project, notify AWS/Amazon Se
 
 This library is licensed under the MIT-0 License. See the [LICENSE](../LICENSE) file for details.
 
-> Last updated: April 2026 | Strands Agents 1.27+ | Python 3.9+
+> Strands Agents 1.58 | Python 3.9+

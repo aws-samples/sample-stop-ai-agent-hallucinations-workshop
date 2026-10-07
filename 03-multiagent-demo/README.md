@@ -1,215 +1,161 @@
 [< Back to Main README](../README.md)
 
-# Multi-Agent Validation: Hallucination Detection with Cross-Validation
+# Multi-Agent Validation: Catching Confident Guesses with a Model Consortium
 
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
-[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.27+-00B4D8.svg?style=flat)](https://strandsagents.com)
-[![Swarm](https://img.shields.io/badge/Pattern-Executor→Validator→Critic-green.svg?style=flat)](https://strandsagents.com/docs/user-guide/concepts/multi-agent/swarm/)
+[![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
+[![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 
-> Single agents hallucinate without detection: they claim success when operations fail and fabricate responses. Multi-agent validation catches these errors through cross-validation using an **Executor → Validator → Critic** pipeline (three specialized agents where each one checks the previous agent's output). This demo builds a travel booking system with Strands Agents Swarm that detects invalid hotels and returns explicit FAILED status instead of hallucinating alternatives.
+> Some questions have a single correct answer in the database. For those, use Graph-RAG (Demo 01) or a deterministic hook (Demo 04), a second agent that re-checks a Cypher result is theatre. But many real questions are *judgements* with no single database answer ("which hotel is best for a honeymoon?"), and that is exactly where a model guesses, confidently. This demo asks the **same** question to several **heterogeneous** Amazon Bedrock models and measures their agreement: consensus means confident, divergence flags a likely hallucination.
 
-Based on research: [Teaming LLMs to Detect and Mitigate Hallucinations](https://arxiv.org/pdf/2510.19507)
+Based on research: [Teaming LLMs to Detect and Mitigate Hallucinations (consortium consistency)](https://arxiv.org/abs/2510.19507).
+
+![Three models, Claude Haiku, Nova Pro and Nova Lite, answer one judgement question in parallel and a node clusters the answers to measure agreement. When they agree there is one cluster with entropy 0 and the verdict is CONFIDENT. When they diverge there are three clusters with high entropy and the verdict is LIKELY HALLUCINATION. Agreement across independent models is the signal, not any single answer](../images/multiagent-consortium.png)
 
 ## The Problem
 
-Research ([Markov Chain Multi-Agent Debate, 2024](https://arxiv.org/html/2406.03075v1)) shows that single agents hallucinate without detection mechanisms:
+A single model answering a subjective question gives you one confident sentence and no signal about whether it's grounded or invented. On a judgement with no deterministic answer, "confident" and "correct" are not the same thing, and a lone model has no way to tell you which one you got.
 
-- **Claim success when operations failed** - No validation layer catches execution errors
-- **Use wrong tools for requests** - No cross-check verifies tool appropriateness
-- **Fabricate responses** - No second opinion challenges generated content
-- **Provide inaccurate statistics** - No verification against ground truth
+Re-checking that answer with a second agent over the **same** data does not help: both agents share the same evidence and often the same biases, so they converge. For a deterministic source this is pure overhead, Graph-RAG or a hook catches violations more cheaply. Multi-agent validation earns its cost somewhere else.
 
-Single agents operate in isolation. When they hallucinate, there's no mechanism to detect the error before it reaches users.
+## The Solution: Consortium Consistency
 
-## The Solution
+Consortium consistency ([arXiv:2510.19507](https://arxiv.org/abs/2510.19507)) asks the **same** question to several **heterogeneous** models, different training and architecture, so they don't share the same blind spots, then clusters their answers and measures agreement:
 
-Multiple specialized agents that validate each other, enhanced with Graph-RAG:
+- **High agreement (low entropy)** → the models converge on shared evidence → **confident, likely reliable.**
+- **Low agreement (high entropy)** → the models are each guessing from their own priors → **likely hallucination, flag for review.**
 
-![Two bands over the same booking request. A single agent does everything, nobody else checks the answer, and a confirmed booking at AnyCompany Antarctica reaches the user even though that hotel does not exist. The swarm splits the work across an Executor that holds the only tools, a Validator with no tools that compares the answer against the original request, and a Critic that returns APPROVED, SUSPICIOUS or INVALID, at the cost of 3 LLM calls instead of 1](images/executor-validator-critic-chain.png)
+A model that hallucinates on its own is simply out-voted by the others.
+
+```python
+from multiagent_tools import hotel_context, ask_consortium, consortium_verdict
+
+context = hotel_context()                       # read-only Neo4j: hotels + ratings
+answers = ask_consortium("Which hotel is best for a luxury traveler?", context)
+verdict = consortium_verdict(answers)
+# verdict["clusters"], verdict["agreement"], verdict["entropy"], verdict["verdict"]
+```
+
+### The consortium
+
+Three models from **two different families** (so the heterogeneity is real, not one model sampled three times):
+
+| Role | Model | Family |
+|------|-------|--------|
+| `claude-haiku` | `global.anthropic.claude-haiku-4-5-20251001-v1:0` | Anthropic |
+| `nova-pro` | `amazon.nova-pro-v1:0` | Amazon |
+| `nova-lite` | `us.amazon.nova-2-lite-v1:0` | Amazon |
+
+> **No Llama.** Llama models can't be enabled in the Workshop Studio environment, so the consortium uses Claude + Nova, which are available there. Swap in any heterogeneous set you have access to.
+
+### How agreement is measured
+
+Each model is asked to name exactly one hotel from the context list. Because models phrase the same pick differently ("Ubud Retreat" vs "AnyCompany Ubud Retreat (Bali, 4.9)"), each answer is **canonicalized to the known hotel name it mentions** before clustering, so formatting differences don't look like disagreement. The verdict then reports the vote clusters, the agreement ratio, and a normalized entropy; one cluster → `CONFIDENT`, multiple clusters → `LIKELY HALLUCINATION (models disagree, verify)`.
+
+### Neo4j's role here (read-only)
+
+Neo4j supplies the hotel **context** the models reason over, a compact list of hotels with city and rating, pulled with read-only Cypher. Every demo touches the graph, but here it is the shared evidence, **not** the validator: the task has no single Cypher answer, so there is nothing deterministic to validate against. Neo4j is never written to.
+
+## When to Use Consortium vs Hooks vs Graph-RAG
+
+This is the honest boundary, pick the technique by the shape of the question:
+
+| Question shape | Example | Best technique |
+|----------------|---------|----------------|
+| Deterministic lookup / aggregation | "How many hotels have a pool?" | **Graph-RAG** (Demo 01), one exact Cypher answer |
+| A business rule that must hold | "Book 15 guests in one room" | **Neurosymbolic hook** (Demo 04), cheap, deterministic enforcement |
+| Subjective / parametric judgement | "Which hotel suits a honeymoon?" | **Consortium** (this demo), no single answer; agreement is the signal |
+
+Consortium costs several model calls per question, so reserve it for the subjective questions where it actually earns its cost. For deterministic sources, a hook or Graph-RAG is cheaper and more reliable.
 
 ## Quick Start
 
 ### Prerequisites
+
 - Python 3.9+
-- [Strands Agents](https://strandsagents.com): AI agent framework
+- An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and **Claude Haiku + Nova Pro + Nova Lite enabled**. **No external API key is needed.**
+- A running Neo4j with the hotel graph (built in [Demo 01](../01-graphrag-demo/); inside Workshop Studio it is restored from a dump). It provides the read-only hotel context.
 
-### Model
+### Install
 
-This demo uses Amazon Bedrock by default (requires AWS credentials). Strands Agents uses Bedrock when no model is specified.
-
-You can swap the model for any provider supported by Strands: Amazon Bedrock, Anthropic, Ollama, and others. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/amazon-bedrock/) for configuration.
-
-### Setup
 ```bash
+cd 03-multiagent-demo
 uv venv && uv pip install -r requirements.txt
+cp ../01-graphrag-demo/.env .env   # or set NEO4J_* yourself
 ```
 
-### Run Tests
+### Run
 
-**Option 1: Python Script (Recommended)**
 ```bash
-uv run test_multiagent_hallucinations.py
+# Notebook (recommended), open in VS Code, Kiro, or Jupyter
+test_multiagent_hallucinations.ipynb
+
+# Or the interactive REPL
+AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 ```
 
-**Option 2: Jupyter Notebook**
-```bash
-Open `test_multiagent_hallucinations.ipynb` in your IDE (VS Code, Kiro, or any editor with notebook support).
-```
+### What you'll see
 
-The tests include:
-- Single agent baseline
-- Multi-agent validation
-- Hallucination detection (invalid hotels)
-- Ground truth verification
-
-## Output Example
+A **grounded** judgement (the ratings point to one clear answer) → the models agree → low entropy → `CONFIDENT`:
 
 ```
-[TEST 1] Single Agent - Valid Booking
-✓ Response: I've booked the grand_hotel for John for 2 nights...
-
-[TEST 2] Single Agent - Invalid Hotel (the_ritz_paris doesn't exist)
-⚠️  Response: I've booked the grand_hotel in Paris for Sarah...
-    (Agent hallucinated - changed hotel without warning!)
-
-[TEST 3] Multi-Agent - Valid Booking with Validation
-✓ Flow: executor → validator → critic → validator → critic
-✓ Status: Status.COMPLETED
-
-[TEST 4] Multi-Agent - Invalid Hotel Detection
-✓ Flow: executor → validator → critic → validator → critic
-✓ Status: Status.FAILED
-    (Correctly detected invalid hotel!)
+Which hotel is the single best choice overall for a luxury traveler?
+clusters: {'AnyCompany ... Retreat': 3} | agreement: 1.0 | entropy: 0.0
+=> CONFIDENT (consensus)
 ```
 
-## How It Works
+A **speculative** judgement (nothing in the data decides it) → the models diverge → high entropy → `LIKELY HALLUCINATION`:
 
-**Strands Agents handles the coordination**: you define what each agent does, and `Swarm` provides autonomous handoffs, shared context, and explicit `COMPLETED`/`FAILED` status, with no custom orchestration code.
-
-### Basic Multi-Agent
-```python
-from strands import Agent
-from strands.multiagent import Swarm
-
-# Three specialized agents
-executor = Agent(name="executor", tools=ALL_TOOLS,
-    system_prompt="Execute requests, then hand off to validator")
-
-validator = Agent(name="validator",
-    system_prompt="Check for hallucinations. Say VALID or HALLUCINATION")
-
-critic = Agent(name="critic",
-    system_prompt="Final review. Say APPROVED or REJECTED")
-
-# Create swarm - agents hand off to each other
-swarm = Swarm([executor, validator, critic], entry_point=executor)
-result = swarm("Book grand_hotel for John")
+```
+Which hotel would a quirky artist secretly prefer?
+clusters: {'A': 1, 'B': 1, 'C': 1} | agreement: 0.33 | entropy: 1.0
+=> LIKELY HALLUCINATION (models disagree, verify)
 ```
 
-### Enhanced with Graph-RAG
-```python
-# Add Graph-RAG tools for structured verification
-from graph_tool import search_hotels_by_country, get_top_rated_hotels
+## Files
 
-executor_graph = Agent(
-    name="executor",
-    tools=[book_hotel, search_hotels_by_country, get_top_rated_hotels],
-    system_prompt="Use graph tools to verify hotel info before booking"
-)
-
-validator_graph = Agent(
-    name="validator",
-    tools=[search_hotels_by_country],  # Can verify against database
-    system_prompt="Validate using hotel database"
-)
-
-swarm_graph = Swarm([executor_graph, validator_graph, critic], entry_point=executor_graph)
-```
-
-## Key Features
-
-- **Shared Context**: All agents see the full task history
-- **Autonomous Handoffs**: Agents decide when to pass control
-- **Safety Mechanisms**: Max handoffs, timeouts, loop detection
-- **Graph-RAG Integration**: Structured data for verification
-- **Ground Truth Validation**: Compare against actual database
-
-## Notebook Tests
-
-The `test_multiagent_hallucinations.ipynb` notebook includes:
-
-| Test | What it measures |
-|------|------------------|
-| TEST 1: Single Agent Baseline | Performance without validation |
-| TEST 2: Multi-Agent Validation | Cross-validation effectiveness |
-| TEST 3: Multi-Agent + Graph-RAG | Structured data verification (optional) |
-| TEST 4: Invalid Hotel Detection | Handling non-existent entities |
-| TEST 5: Complex Queries | Multi-step reasoning (optional) |
-| TEST 6: Out-of-Domain | Handling missing data (optional) |
-
-**Note**: Tests 3, 5, and 6 require Neo4j with Graph-RAG setup. They will be skipped if not available.
-
-## Results Summary
-
-| Approach | Hallucination Detection | Accuracy | Latency |
-|----------|------------------------|----------|---------|
-| Single Agent | ❌ None | ⚠️ Fabricates alternatives | ✅ Fast |
-| Multi-Agent | ✅ Detects errors | ✅ Validates responses | ⚠️ Slower |
-| Multi-Agent + Graph-RAG | ✅ Excellent | ✅ Database verification | ⚠️ Slower |
-
-## Key Findings
-
-1. **Single agents hallucinate**: Changed `the_ritz_paris` to `grand_hotel` without warning
-2. **Multi-agent validation works**: Detected invalid hotel, returned FAILED status
-3. **Executor → Validator → Critic pattern**: Provides audit trail and cross-validation
-4. **Status tracking**: COMPLETED/FAILED makes errors explicit
-
-## Troubleshooting
-
-**OpenTelemetry warnings**: Ignore "Failed to detach context" warnings - they don't affect functionality
-
-**AWS credentials**: Ensure credentials are configured with Amazon Bedrock access
-
-**Graph-RAG tests skipped**: Optional - requires Neo4j setup. Core tests work without it.
-
-## References
-
-- [Teaming LLMs to Detect and Mitigate Hallucinations](https://arxiv.org/pdf/2510.19507)
-- [RAG-KG-IL: Multi-Agent Hybrid Framework](https://arxiv.org/pdf/2503.13514)
-- [MetaRAG: Metamorphic Testing for Hallucination Detection](https://arxiv.org/pdf/2509.09360)
-- [Synergistic Integration in Multi-Agent RAG Systems](https://arxiv.org/html/2511.21729v1)
-- [Strands Swarm Documentation](https://strandsagents.com/docs/user-guide/concepts/multi-agent/swarm/)
-
----
+| File | What it is |
+|------|------------|
+| `test_multiagent_hallucinations.ipynb` | The walkthrough: the consortium + Neo4j context (Part 1), a grounded question where models agree (Part 2), a speculative one where they diverge (Part 3). Logic is inline to teach it. |
+| `multiagent_tools.py` | `hotel_context` (read-only Neo4j), `ask_consortium` (same question to each heterogeneous model), `consortium_verdict` (cluster + agreement + entropy). Copied so `chat.py` can import them. |
+| `chat.py` | REPL that runs your own judgement question through the consortium. |
 
 ## Frequently Asked Questions
 
-### How does multi-agent validation detect hallucinations that single agents miss?
+### Why not an Executor → Validator → Critic swarm over Neo4j?
 
-Single agents operate in isolation. When they hallucinate, there is no mechanism to detect the error. Multi-agent validation uses an Executor-Validator-Critic pipeline where each agent cross-checks the previous one's output. The Validator verifies tool calls against ground truth, and the Critic provides a final pass/fail verdict with explicit COMPLETED or FAILED status.
+Because over a deterministic source it's theatre: a Cypher query already returns the truth, and a second agent that queries the same thing just agrees. Modern models (even small ones) don't reliably hallucinate on simple, clear data, so there's nothing for the validator to catch, and a hook (Demo 04) catches genuine rule violations more cheaply. Consortium consistency moves multi-agent validation to where it actually helps: subjective questions with no single answer.
 
-### What happens when the multi-agent swarm detects a hallucination?
+### What does high entropy actually tell me?
 
-The swarm returns a `Status.FAILED` result with an explanation of what went wrong. For example, when a single agent silently substitutes a non-existent hotel with a different one, the multi-agent swarm detects the invalid hotel and returns FAILED instead of hallucinating an alternative.
+That the models are each answering from their own priors rather than from shared evidence, the exact situation where a single confident answer would be an undetected hallucination. It's a signal to verify (or to fall back to a human), not a final answer by itself.
 
-### Does multi-agent validation increase latency?
+### Does this increase latency and cost?
 
-Yes, multi-agent validation adds latency because multiple LLM calls are needed (Executor + Validator + Critic). However, the tradeoff is significantly higher accuracy and an audit trail of cross-validation. For production use, [Demo 06](../06-agentcore-boto3-demo/) shows how to achieve similar validation with a single `validate_booking_rules` tool backed by DynamoDB for lower latency.
+Yes, it's several model calls per question instead of one. That's why the "when to use" table matters: reserve the consortium for subjective judgements, and use Graph-RAG or a hook for everything with a deterministic answer.
 
-This demo uses Strands Agents Swarm. Similar multi-agent patterns can be implemented in any framework that supports agent-to-agent handoffs.
+### Can I use this with other frameworks?
+
+Yes. Ask the same prompt to several heterogeneous models, cluster semantically-equivalent answers, and measure agreement, the pattern is framework-agnostic. This demo expresses it with Strands `Agent` + `BedrockModel`.
+
+## References
+
+- [Teaming LLMs to Detect and Mitigate Hallucinations (consortium consistency)](https://arxiv.org/abs/2510.19507)
+- [Markov Chain Multi-Agent Debate](https://arxiv.org/html/2406.03075v1)
+- [Strands Multi-Agent Documentation](https://strandsagents.com/docs/learning/multi-agent-patterns-graph-workflows/)
 
 ---
 
 ## Navigation
 
 - **Previous:** [Demo 02 - Semantic Tool Selection](../02-semantic-tools-demo/)
-- **Next:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/): enforce business rules the LLM cannot bypass
+- **Next:** [Demo 04 - Neurosymbolic Guardrails](../04-neurosymbolic-demo/): enforce business rules the LLM cannot bypass.
 
 ---
 
 ## Security
 
-If you discover a potential security issue in this project, notify AWS/Amazon Security via the [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/?trk=87c4c426-cddf-4799-a299-273337552ad8&sc_channel=el). Please do **not** create a public GitHub issue.
+If you discover a potential security issue in this project, notify AWS/Amazon Security via the [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public GitHub issue.
 
 ---
 

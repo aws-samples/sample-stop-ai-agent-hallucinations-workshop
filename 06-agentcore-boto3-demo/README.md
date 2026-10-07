@@ -312,7 +312,7 @@ All services are pay-per-use. At workshop scale (a few dozen test invocations): 
 
 ### Can I change the LLM from Bedrock to another provider?
 
-Yes. Change the `BedrockModel` in `booking_agent.py` to any provider supported by Strands Agents: Anthropic API, Ollama (local models), or any OpenAI-compatible endpoint. The tools, Lambda functions, and AgentCore Gateway remain unchanged, only the LLM call changes. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/concepts/model-providers/) for configuration.
+Yes. Change the `BedrockModel` in `booking_agent.py` to any provider supported by Strands Agents: Anthropic API, Ollama (local models). The tools, Lambda functions, and AgentCore Gateway remain unchanged, only the LLM call changes. See [Strands Model Providers](https://strandsagents.com/docs/user-guide/sdk/model-providers/) for configuration.
 
 ### How are the steering rules different from the hard guardrails?
 
