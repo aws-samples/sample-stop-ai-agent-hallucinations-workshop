@@ -23,7 +23,7 @@ This demo uses a deliberately large, overlapping pool and a small model (**Claud
 
 ## The Solution: A Semantic-Selection Hook
 
-![Two phases. At startup the hook embeds the name and docstring of every tool with Amazon Bedrock Nova 2 into a FAISS index. Per query it embeds the question with the same model, ranks all tools by cosine distance, keeps the closest three, and replaces the agent's live tool_registry with those 3](images/semantic-tool-selection.png)
+![Two phases. At startup the hook embeds the name and docstring of every tool with Amazon Bedrock Nova 2 into a FAISS index. Per query it embeds the question with the same model, ranks all tools by cosine distance, keeps the closest three, and replaces the agent's live tool_registry with those 3](../images/semantic-hook-phases.png)
 
 `SemanticToolHook` is a Strands `HookProvider`, **not** Python wrapped around the agent. The agent is created with **all** the tools; on every request (`BeforeInvocationEvent`) the hook:
 

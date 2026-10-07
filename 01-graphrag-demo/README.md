@@ -70,7 +70,7 @@ After the build, `build_graph.py` verifies the result: only the expected labels 
 
 ## Architecture
 
-![Two pipelines over the same hotel FAQ documents: vector RAG chunks and embeds them into a FAISS index and the agent sees only the 3 closest chunks, while Graph-RAG extracts entities and relationships with neo4j-graphrag into a Neo4j graph and the agent queries it with Text2Cypher](images/rag-vs-graphrag-architecture-comparison.png)
+![Two pipelines over the same hotel FAQ documents: vector RAG chunks and embeds them into a FAISS index and the agent sees only the 3 closest chunks, while Graph-RAG extracts entities and relationships with neo4j-graphrag into a Neo4j graph and the agent queries it with Text2Cypher](../images/graphrag-architecture.png)
 
 Both the FAISS index and the graph's chunk vectors use the same Amazon Bedrock embedding model (Nova 2), and the LLM entity extraction uses Amazon Bedrock Claude.
 
