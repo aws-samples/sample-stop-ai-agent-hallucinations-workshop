@@ -13,7 +13,7 @@ Run this ONCE, outside a Workshop Studio event, alongside build_graph.py:
 
     AWS_PROFILE=<your-profile> AWS_REGION=us-east-1 python load_vector_data.py
 
-Default is LITE (30 docs) to match the lite graph. Set BUILD_FULL=1 for all 300.
+Default is FULL (300 docs) to match the 300-hotel dump. Set BUILD_LITE=1 for 30.
 Uses Amazon Bedrock Nova 2 embeddings (same model as the graph's chunk vectors).
 """
 import json
@@ -27,8 +27,10 @@ import numpy as np
 MODEL_ID = "amazon.nova-2-multimodal-embeddings-v1:0"
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 DIMENSIONS = 1024
-FULL = os.getenv("BUILD_FULL") == "1"
-MAX_DOCS = None if FULL else 30
+# Default is the FULL 300-hotel dataset so the FAISS index matches the 300-hotel
+# Neo4j dump restored in Workshop Studio. Set BUILD_LITE=1 for a quick 30-doc index.
+LITE = os.getenv("BUILD_LITE") == "1"
+MAX_DOCS = 30 if LITE else None
 
 
 def _embed(texts, client):
@@ -51,7 +53,30 @@ def _embed(texts, client):
     return np.array(vectors, dtype="float32")
 
 
+def _ensure_data():
+    """Make sure data/*.txt exists. In Workshop Studio data/ is .gitignored and
+    only hotel-faqs.zip ships, so extract it on first run (otherwise glob finds
+    0 files and FAISS fails with 'Embedding 0 FAQ documents')."""
+    data_dir = Path("data")
+    if data_dir.exists() and any(data_dir.glob("*.txt")):
+        return
+    zip_path = Path("hotel-faqs.zip")
+    if not zip_path.exists():
+        raise FileNotFoundError(
+            "data/ has no .txt files and hotel-faqs.zip is missing. "
+            "Restore hotel-faqs.zip or populate data/."
+        )
+    import zipfile
+    data_dir.mkdir(exist_ok=True)
+    with zipfile.ZipFile(zip_path) as z:
+        z.extractall(data_dir)
+    # The zip may contain a top-level folder; flatten *.txt into data/.
+    for p in [q for q in data_dir.rglob("*.txt") if q.parent != data_dir]:
+        p.rename(data_dir / p.name)
+
+
 def build():
+    _ensure_data()
     files = sorted(Path("data").glob("*.txt"))
     if MAX_DOCS:
         files = files[:MAX_DOCS]
