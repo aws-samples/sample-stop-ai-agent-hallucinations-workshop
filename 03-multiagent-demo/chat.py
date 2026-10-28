@@ -18,9 +18,11 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 from dotenv import load_dotenv
 
+# Load .env BEFORE importing multiagent_tools: it creates the Neo4j driver at import time.
+load_dotenv()
+
 from multiagent_tools import ask, build_consortium, hotel_context
 
-load_dotenv()
 
 
 def main():

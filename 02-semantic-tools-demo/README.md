@@ -47,7 +47,7 @@ agent("How much does a room cost at Cliffside Resort?")
 
 ## Honest Framing: What the Numbers Mean
 
-- **Token saving is the solid headline (~73%).** Sending 3 tool descriptions instead of ~40 cuts input tokens on every call, and the saving compounds across a conversation. The notebook prints the exact figure from `result.metrics.accumulated_usage` for your own run.
+- **Token saving is the solid headline (~76%).** Sending 3 tool descriptions instead of ~40 cuts input tokens on every call, and the saving compounds across a conversation. The notebook prints the exact figure from `result.metrics.accumulated_usage` for your own run.
 - **Accuracy is equal-or-better, shown as observed.** A strong small model is non-deterministic, so the notebook measures accuracy both ways (all 40 tools vs top-3) rather than asserting a fixed improvement. Fewer, relevant tools generally help.
 - **The trade-off is real.** Top-k filtering can only help if the right tool is in the top-k. If FAISS misranks the correct tool out of the top-3, the agent can't call it at all. Tune `top_k` and write clear, distinct docstrings; the notebook calls this out.
 
@@ -129,7 +129,7 @@ agent("How much does a room cost at Cliffside Resort?")
 
 ### How much does semantic tool selection reduce token usage?
 
-A lot, the demo measures it rather than asserting a figure. Instead of sending ~40 tool descriptions on every query, the hook sends the top 3. In the notebook's run that is roughly a 73% reduction, and it repeats on every turn. The exact number depends on how many tools you have and how long their docstrings are; the notebook prints the figure for your own run.
+A lot, the demo measures it rather than asserting a figure. Instead of sending ~40 tool descriptions on every query, the hook sends the top 3. In the notebook's run (27-Oct-2026: 69,991 → 16,193 input tokens over 10 questions, both 10/10 correct) that is roughly a 76% reduction, and it repeats on every turn. The exact number depends on how many tools you have and how long their docstrings are; the notebook prints the figure for your own run.
 
 ### Does filtering tools break conversation memory?
 

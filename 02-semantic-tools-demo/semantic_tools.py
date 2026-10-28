@@ -140,10 +140,14 @@ get_booking = _store.get_booking
 # Each entry is  name: one-line description  (the description is the tool's
 # docstring, which is what the semantic search and the model read).
 def _make_tool(name, description):
-    @tool(name=name)
+    @tool(name=name, description=description)
     def f(query: str = "") -> dict:
+        """Stand-in travel tool.
+
+        Args:
+            query: the request details.
+        """
         return {"status": "success", "content": [{"json": {"result": f"({name} result)"}}]}
-    f.__doc__ = description + "\n\nArgs:\n    query: the request details."
     return f
 
 
@@ -161,9 +165,9 @@ EXTRA_TOOL_DESCRIPTIONS = {
     # flights
     "search_flights": "Search available flights between two cities.",
     "get_flight_prices": "Compare flight ticket prices between cities.",
-    "get_flight_status": "Check whether a flight is on time or delayed.",
-    "get_flight_details": "Aircraft type, duration and route for a flight.",
-    "check_flight_availability": "How many seats remain on a flight.",
+    "get_flight_status": "Check whether a specific flight (by flight number) is on time, delayed or cancelled.",
+    "get_flight_details": "Aircraft type, duration and route of a flight. Not its status.",
+    "check_flight_availability": "How many seats are still for sale on a flight.",
     "book_flight": "Book a flight ticket for a passenger.",
     "cancel_flight": "Cancel a booked flight ticket.",
     "get_baggage_allowance": "Baggage allowance and fees for a flight/airline.",
@@ -173,13 +177,13 @@ EXTRA_TOOL_DESCRIPTIONS = {
     "get_public_transport": "Public transport options and routes in a city.",
     "estimate_taxi_fare": "Estimate a taxi fare between two points in a city.",
     # money
-    "convert_currency": "Convert an amount of money between two currencies.",
-    "get_exchange_rate": "Get the current exchange rate between two currencies.",
+    "convert_currency": "Convert a specific amount of money into another currency (e.g. 200 USD to EUR). Use when the user gives an amount.",
+    "get_exchange_rate": "Get only the current exchange rate between two currencies. Use when no amount is given.",
     "estimate_trip_budget": "Estimate a total trip budget from its components.",
     # docs & info
-    "get_visa_requirements": "Visa and passport requirements for a destination.",
+    "get_visa_requirements": "Whether a traveler needs a visa or passport to enter a destination country.",
     "get_travel_advisory": "Government safety travel advisory for a country.",
-    "get_vaccination_requirements": "Required vaccinations to enter a country.",
+    "get_vaccination_requirements": "Vaccinations required to enter a country. Not visas.",
     "get_timezone": "Current local time and timezone for a city.",
     "get_points_of_interest": "Tourist attractions and sights in a city.",
     "get_restaurant_recommendations": "Restaurant recommendations in a city.",

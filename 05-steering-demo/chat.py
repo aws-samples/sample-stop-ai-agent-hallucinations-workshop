@@ -34,10 +34,13 @@ def main():
     hotels = HotelCheck()
 
     # Strands uses Amazon Bedrock (Claude Sonnet 4) by default — no model config.
+    # Same prompt as test_hooks_vs_control.ipynb: the agent tries the full party in one
+    # call, so the steering rule (max 10 per room) is what splits it.
     agent = Agent(
         system_prompt=(
             "You are a travel agent that helps people with hotels. Book the whole party "
-            "together; if you receive guidance about room limits, follow it. Keep answers concise."
+            "together with the full guest count; do not assume any per-room limit yourself. "
+            "If you receive guidance to split the booking, follow it exactly. Keep answers concise."
         ),
         tools=[hotels.hotel_exists, store.book_hotel],
         plugins=[MaxGuestsSteering()],

@@ -17,13 +17,15 @@ import os
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 from dotenv import load_dotenv
+
+# Load .env BEFORE importing semantic_tools: it creates the Neo4j driver at import time.
+load_dotenv()
 from strands import Agent
 from strands.models import BedrockModel
 from strands.session import FileSessionManager
 
 from semantic_tools import ALL_TOOLS, SemanticToolHook
 
-load_dotenv()
 
 # A small model (Claude Haiku) makes tool confusion visible — and the semantic
 # hook's benefit measurable. Strands uses Amazon Bedrock by default.
