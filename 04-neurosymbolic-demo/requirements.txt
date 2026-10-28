@@ -2,3 +2,7 @@ strands-agents==1.58.0
 neo4j==6.4.0
 boto3==1.43.108
 python-dotenv==1.2.4
+
+# Security pin: strands-agents allows mcp<2.2, and mcp 2.0-2.1 has CVE-2026-116686
+# (fixed in 1.30.0 / 2.2.0). Remove once Strands allows mcp>=2.2.
+mcp==1.30.0

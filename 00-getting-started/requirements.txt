@@ -1,2 +1,6 @@
 strands-agents>=1.56.0
 boto3>=1.35.0
+
+# Security pin: strands-agents allows mcp<2.2, and mcp 2.0-2.1 has CVE-2026-116686
+# (fixed in 1.30.0 / 2.2.0). Remove once Strands allows mcp>=2.2.
+mcp==1.30.0

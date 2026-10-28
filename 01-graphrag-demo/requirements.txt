@@ -8,3 +8,7 @@ python-dotenv>=1.0.1
 
 # --- Local alternative (no AWS needed) ---
 # sentence-transformers>=3.4.0  # Uncomment to use all-MiniLM-L6-v2 instead of Bedrock
+
+# Security pin: strands-agents allows mcp<2.2, and mcp 2.0-2.1 has CVE-2026-116686
+# (fixed in 1.30.0 / 2.2.0). Remove once Strands allows mcp>=2.2.
+mcp==1.30.0
