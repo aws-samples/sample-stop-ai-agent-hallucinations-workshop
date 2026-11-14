@@ -42,7 +42,7 @@ ADVISOR_PROMPT = (
 
 _driver = GraphDatabase.driver(
     os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687"),
-    auth=(os.getenv("NEO4J_USER", "neo4j"), os.getenv("NEO4J_PASSWORD", "password")),
+    auth=(os.getenv("NEO4J_USER", "neo4j"), os.environ["NEO4J_PASSWORD"]),
 )
 
 
@@ -100,7 +100,7 @@ def consortium_verdict(graph_result, hotels: list[str]) -> dict:
         "total_out": graph_result.accumulated_usage["outputTokens"],
         "clusters": dict(votes),
         "agreement": round(votes.most_common(1)[0][1] / n, 2),
-        "entropy": round(entropy, 2),
+        "entropy": round(entropy, 2) or 0.0,  # avoid printing -0.0 for a single cluster
         "verdict": "CONFIDENT (consensus)" if len(votes) == 1
                    else "LIKELY HALLUCINATION (models disagree, verify)",
     }

@@ -33,7 +33,7 @@ REGION = os.getenv("AWS_REGION", "us-east-1")
 # ── Real tool 1: hotels via read-only Neo4j ──────────────────────────────────
 _driver = GraphDatabase.driver(
     os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687"),
-    auth=(os.getenv("NEO4J_USER", "neo4j"), os.getenv("NEO4J_PASSWORD", "password")),
+    auth=(os.getenv("NEO4J_USER", "neo4j"), os.environ["NEO4J_PASSWORD"]),
 )
 
 

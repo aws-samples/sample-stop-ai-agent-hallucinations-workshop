@@ -6,6 +6,7 @@ Standalone — no imports from other files.
 
 Usage: python3 cleanup.py
 """
+import hashlib
 import os
 import select
 
@@ -28,9 +29,14 @@ ECR_REPO_NAMES = [
     "bedrock-agentcore-hotelbookingagentwithmemory",
 ]
 CODEBUILD_PROJECTS = [f"{repo}-builder" for repo in ECR_REPO_NAMES]
-CODEBUILD_ROLE = f"AmazonBedrockAgentCoreSDKCodeBuild-{REGION}-{ACCOUNT_ID[:8]}"
 
 RUNTIME_NAMES = ["HotelBookingAgent", "HotelBookingAgentWithMemory"]
+# The starter toolkit names its CodeBuild role with the first 10 hex chars of
+# sha256(agent_name), so only this workshop's two roles are deleted.
+CODEBUILD_ROLES = [
+    f"AmazonBedrockAgentCoreSDKCodeBuild-{REGION}-{hashlib.sha256(name.encode()).hexdigest()[:10]}"
+    for name in RUNTIME_NAMES
+]
 MEMORY_NAME = "workshop_HotelBookingMemory"
 GATEWAY_NAME = "HotelBookingGateway"
 LAMBDA_TOOLS = [
@@ -38,6 +44,7 @@ LAMBDA_TOOLS = [
     "process_payment", "confirm_booking", "cancel_booking",
     "validate_booking_rules", "query_knowledge_graph",
 ]
+LAYER_NAME = "workshop-neo4j-driver"
 TABLE_NAMES = ["workshop-Hotels", "workshop-Bookings", "workshop-SteeringRules"]
 ROLE_NAMES = ["workshop-LambdaExecutionRole", "workshop-AgentCoreExecutionRole"]
 BUCKET_NAMES = [
@@ -55,7 +62,7 @@ def cleanup():
     # 1. Delete AgentCore Runtimes (Module 6 and Module 7)
     print("\n1. Deleting AgentCore Runtimes...")
     try:
-        runtimes = agentcore.list_agent_runtimes().get("agentRuntimes", [])
+        runtimes = [r for page in agentcore.get_paginator("list_agent_runtimes").paginate() for r in page["agentRuntimes"]]
         for rt in runtimes:
             if rt.get("agentRuntimeName") in RUNTIME_NAMES:
                 rid = rt["agentRuntimeId"]
@@ -87,12 +94,12 @@ def cleanup():
                 gw_id = gw["gatewayId"]
                 # Delete all targets first
                 try:
-                    targets = agentcore.list_gateway_targets(gatewayId=gw_id).get("items", [])
+                    targets = agentcore.list_gateway_targets(gatewayIdentifier=gw_id).get("items", [])
                     for t in targets:
                         tid = t.get("targetId", t.get("id", ""))
                         tname = t.get("name", tid)
                         try:
-                            agentcore.delete_gateway_target(gatewayId=gw_id, targetId=tid)
+                            agentcore.delete_gateway_target(gatewayIdentifier=gw_id, targetId=tid)
                             print(f"  Deleted target: {tname}")
                         except Exception as e:
                             print(f"  Error deleting target {tname}: {e}")
@@ -104,11 +111,11 @@ def cleanup():
 
                 # Delete gateway
                 try:
-                    agentcore.delete_gateway(gatewayId=gw_id)
+                    agentcore.delete_gateway(gatewayIdentifier=gw_id)
                     print(f"  Deleting gateway: {gw_id}...")
                     for _ in range(30):
                         try:
-                            status = agentcore.get_gateway(gatewayId=gw_id).get("status")
+                            status = agentcore.get_gateway(gatewayIdentifier=gw_id).get("status")
                             if "DELET" in str(status):
                                 select.select([], [], [], 5)
                             else:
@@ -124,10 +131,11 @@ def cleanup():
     # 2b. Delete AgentCore Memory (Module 7)
     print("\n2b. Deleting AgentCore Memory...")
     try:
-        memories = agentcore.list_memories().get("memories", [])
+        memories = [m for page in agentcore.get_paginator("list_memories").paginate() for m in page["memories"]]
         for mem in memories:
             mem_id = mem.get("id", "")
-            if mem_id.startswith(MEMORY_NAME):
+            # Memory IDs are "<name>-<suffix>"; the toolkit names its own "<runtime>_mem-<suffix>"
+            if mem_id.startswith((f"{MEMORY_NAME}-",) + tuple(f"{n}_mem-" for n in RUNTIME_NAMES)):
                 try:
                     agentcore.delete_memory(memoryId=mem_id)
                     print(f"  Deleted memory: {mem_id}")
@@ -147,6 +155,17 @@ def cleanup():
             pass
         except Exception as e:
             print(f"  Error: {function_name}: {e}")
+
+    # 3b. Delete the Neo4j driver Lambda layer (all versions)
+    print("\n3b. Deleting Lambda layer...")
+    try:
+        paginator = lambda_client.get_paginator("list_layer_versions")
+        for page in paginator.paginate(LayerName=LAYER_NAME):
+            for version in page.get("LayerVersions", []):
+                lambda_client.delete_layer_version(LayerName=LAYER_NAME, VersionNumber=version["Version"])
+                print(f"  Deleted {LAYER_NAME}:{version['Version']}")
+    except Exception as e:
+        print(f"  Skip: {e}")
 
     # 4. Delete IAM roles
     print("\n4. Deleting IAM roles...")
@@ -227,31 +246,30 @@ def cleanup():
         except Exception as e:
             print(f"  Error: {repo_name}: {e}")
 
-    # 9. Delete CodeBuild IAM role
-    print("\n9. Deleting CodeBuild IAM role...")
-    try:
-        cb_roles = iam.list_roles(PathPrefix="/")["Roles"]
-        for role in cb_roles:
-            if role["RoleName"].startswith("AmazonBedrockAgentCoreSDKCodeBuild"):
-                rn = role["RoleName"]
-                try:
-                    for pol in iam.list_attached_role_policies(RoleName=rn)["AttachedPolicies"]:
-                        iam.detach_role_policy(RoleName=rn, PolicyArn=pol["PolicyArn"])
-                    for pn in iam.list_role_policies(RoleName=rn)["PolicyNames"]:
-                        iam.delete_role_policy(RoleName=rn, PolicyName=pn)
-                    iam.delete_role(RoleName=rn)
-                    print(f"  Deleted {rn}")
-                except Exception as e:
-                    print(f"  Error: {rn}: {e}")
-    except Exception as e:
-        print(f"  Skip: {e}")
+    # 9. Delete CodeBuild IAM roles created by the starter toolkit for these runtimes
+    print("\n9. Deleting CodeBuild IAM roles...")
+    for rn in CODEBUILD_ROLES:
+        try:
+            for pol in iam.list_attached_role_policies(RoleName=rn)["AttachedPolicies"]:
+                iam.detach_role_policy(RoleName=rn, PolicyArn=pol["PolicyArn"])
+            for pn in iam.list_role_policies(RoleName=rn)["PolicyNames"]:
+                iam.delete_role_policy(RoleName=rn, PolicyName=pn)
+            iam.delete_role(RoleName=rn)
+            print(f"  Deleted {rn}")
+        except iam.exceptions.NoSuchEntityException:
+            pass
+        except Exception as e:
+            print(f"  Error: {rn}: {e}")
 
     # 10. Delete CloudWatch log groups (Lambda + AgentCore)
     print("\n10. Deleting CloudWatch log groups...")
+    # Only this workshop's log groups: other agents in the account keep theirs
     log_group_prefixes = [
         "/aws/lambda/hotel-booking-",
-        "/aws/bedrock-agentcore/",
-        "/aws/vendedlogs/bedrock-agentcore/",
+        f"/aws/bedrock-agentcore/{GATEWAY_NAME.lower()}-",
+        f"/aws/vendedlogs/bedrock-agentcore/memory/APPLICATION_LOGS/{MEMORY_NAME}-",
+    ] + [f"/aws/bedrock-agentcore/runtimes/{n}-" for n in RUNTIME_NAMES] + [
+        f"/aws/vendedlogs/bedrock-agentcore/memory/APPLICATION_LOGS/{n}_mem-" for n in RUNTIME_NAMES
     ]
     for prefix in log_group_prefixes:
         try:

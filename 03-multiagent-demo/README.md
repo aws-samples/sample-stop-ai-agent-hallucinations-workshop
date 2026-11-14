@@ -2,7 +2,7 @@
 
 # Multi-Agent Validation: Catching Confident Guesses with a Model Consortium
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 
@@ -27,12 +27,15 @@ Consortium consistency ([arXiv:2510.19507](https://arxiv.org/abs/2510.19507)) as
 
 A model that hallucinates on its own is simply out-voted by the others.
 
+The consortium runs as a Strands **Graph**: one node per model, all running in parallel on the same task.
+
 ```python
-from multiagent_tools import hotel_context, ask_consortium, consortium_verdict
+from multiagent_tools import ask, build_consortium, hotel_context
 
 context = hotel_context()                       # read-only Neo4j: hotels + ratings
-answers = ask_consortium("Which hotel is best for a luxury traveler?", context)
-verdict = consortium_verdict(answers)
+hotels = [l[2:].split(" (")[0] for l in context.splitlines() if l.startswith("- ")]
+graph = build_consortium()                      # Strands Graph, one parallel node per model
+verdict = ask(graph, "Which hotel is best for a traveler visiting Tokyo?", context, hotels)
 # verdict["clusters"], verdict["agreement"], verdict["entropy"], verdict["verdict"]
 ```
 
@@ -72,7 +75,7 @@ Consortium costs several model calls per question, so reserve it for the subject
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and **Claude Haiku + Nova Pro + Nova Lite enabled**. **No external API key is needed.**
 - A running Neo4j with the hotel graph (built in [Demo 01](../01-graphrag-demo/); inside Workshop Studio it is restored from a dump). It provides the read-only hotel context.
 
@@ -80,34 +83,32 @@ Consortium costs several model calls per question, so reserve it for the subject
 
 ```bash
 cd 03-multiagent-demo
-uv venv && uv pip install -r requirements.txt
+pip install -r requirements.txt
 cp ../01-graphrag-demo/.env .env   # or set NEO4J_* yourself
 ```
 
 ### Run
 
-```bash
-# Notebook (recommended), open in VS Code, Kiro, or Jupyter
-test_multiagent_hallucinations.ipynb
+Open `test_multiagent_hallucinations.ipynb` in VS Code, Kiro or Jupyter (recommended), or run the interactive REPL:
 
-# Or the interactive REPL
+```bash
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 ```
 
 ### What you'll see
 
-A **grounded** judgement (the ratings point to one clear answer) → the models agree → low entropy → `CONFIDENT`:
+A **grounded** judgement (the data points to one clear answer: only one listed hotel is in Tokyo) → the models agree → low entropy → `CONFIDENT`:
 
 ```
-Which hotel is the single best choice overall for a luxury traveler?
-clusters: {'AnyCompany ... Retreat': 3} | agreement: 1.0 | entropy: 0.0
+Which hotel is best for a traveler visiting Tokyo?
+clusters: {'AnyCompany Ginza Suites': 3} | agreement: 1.0 | entropy: 0.0
 => CONFIDENT (consensus)
 ```
 
 A **speculative** judgement (nothing in the data decides it) → the models diverge → high entropy → `LIKELY HALLUCINATION`:
 
 ```
-Which hotel would a quirky artist secretly prefer?
+Which single hotel best matches the color purple?
 clusters: {'A': 1, 'B': 1, 'C': 1} | agreement: 0.33 | entropy: 1.0
 => LIKELY HALLUCINATION (models disagree, verify)
 ```
@@ -117,7 +118,7 @@ clusters: {'A': 1, 'B': 1, 'C': 1} | agreement: 0.33 | entropy: 1.0
 | File | What it is |
 |------|------------|
 | `test_multiagent_hallucinations.ipynb` | The walkthrough: the consortium + Neo4j context (Part 1), a grounded question where models agree (Part 2), a speculative one where they diverge (Part 3). Logic is inline to teach it. |
-| `multiagent_tools.py` | `hotel_context` (read-only Neo4j), `ask_consortium` (same question to each heterogeneous model), `consortium_verdict` (cluster + agreement + entropy). Copied so `chat.py` can import them. |
+| `multiagent_tools.py` | `hotel_context` (read-only Neo4j), `build_consortium` (Strands Graph with one parallel node per heterogeneous model), `ask` (runs the graph on one question), `consortium_verdict` (cluster + agreement + entropy). Copied so `chat.py` can import them. |
 | `chat.py` | REPL that runs your own judgement question through the consortium. |
 
 ## Frequently Asked Questions
@@ -142,7 +143,7 @@ Yes. Ask the same prompt to several heterogeneous models, cluster semantically-e
 
 - [Teaming LLMs to Detect and Mitigate Hallucinations (consortium consistency)](https://arxiv.org/abs/2510.19507)
 - [Markov Chain Multi-Agent Debate](https://arxiv.org/html/2406.03075v1)
-- [Strands Multi-Agent Documentation](https://strandsagents.com/docs/learning/multi-agent-patterns-graph-workflows/)
+- [Strands Graph Multi-Agent Documentation](https://strandsagents.com/docs/user-guide/sdk/multi-agent/graph/)
 
 ---
 

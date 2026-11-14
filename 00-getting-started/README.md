@@ -4,7 +4,7 @@
 
 Get up and running with [Strands Agents](https://strandsagents.com) in under 30 minutes. This notebook covers the core concepts used throughout the workshop (agents, model providers, tools, token metrics, lifecycle hooks, and multi-agent swarms) with runnable examples and short explanations.
 
-[![Python](https://img.shields.io/badge/Python-3.9+-green.svg?style=flat)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-green.svg?style=flat)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 
@@ -31,8 +31,8 @@ Each concept maps to a cell in `getting_started_strands.ipynb`:
 
 ## Prerequisites
 
-- Python 3.9+
-- [uv](https://docs.astral.sh/uv/) package manager
+- Python 3.10+
+- `pip` (self-paced: optionally inside a virtual environment created with `python -m venv .venv`)
 - An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access. **No external API key is needed**, Amazon Bedrock is the default provider everywhere in this workshop.
 
 **At an AWS event:** AWS credentials and dependencies are pre-configured. Run the first notebook cell as-is, no setup needed.
@@ -43,7 +43,7 @@ Each concept maps to a cell in `getting_started_strands.ipynb`:
 aws configure   # or set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION
 ```
 
-Then enable the model in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess) (`us.anthropic.claude-sonnet-4-5` or equivalent).
+Amazon Bedrock enables serverless models on first use; Anthropic models need a one-time use case submission per account (open an Anthropic model in the Amazon Bedrock model catalog and submit the use case details).
 
 ---
 
@@ -51,7 +51,7 @@ Then enable the model in the [Bedrock Model Access console](https://console.aws.
 
 ```bash
 cd 00-getting-started
-uv venv && uv pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Open `getting_started_strands.ipynb` in your IDE (VS Code, Kiro, or any editor with notebook support) and run the cells in order.
@@ -140,7 +140,7 @@ class MaxGuestsHook(HookProvider):
             if guests > 10:
                 event.cancel_tool = f"BLOCKED: {guests} guests exceeds maximum of 10"
 
-agent = Agent(tools=[book_room], hooks=[MaxGuestsHook()]...)
+agent = Agent(tools=[book_room], hooks=[MaxGuestsHook()], system_prompt="You are a booking assistant.")
 ```
 
 This pattern is the foundation of Demos 04 and 05. See: [Strands Hooks Documentation](https://strandsagents.com/docs/user-guide/sdk/agents/hooks-events/)
@@ -162,7 +162,7 @@ swarm = Swarm(nodes=[executor, validator, critic], max_handoffs=5)
 swarm("What are the details for AnyCompany Lisbon Resort?")
 ```
 
-This primer uses a simple Executor → Validator → Critic swarm to introduce the handoff mechanism. Demo 03 builds a different, research-backed multi-agent pattern (a heterogeneous model *consortium*) on top of the same `Swarm`/multi-agent foundation. See: [Strands Multi-Agent Documentation](https://strandsagents.com/docs/learning/multi-agent-patterns-graph-workflows/)
+This primer uses a simple Executor → Validator → Critic swarm to introduce the handoff mechanism. Demo 03 builds a different, research-backed multi-agent pattern (a heterogeneous model *consortium*) on the same multi-agent foundation, as a Strands Graph instead of a Swarm. See: [Strands Swarm Documentation](https://strandsagents.com/docs/user-guide/sdk/multi-agent/swarm/)
 
 ---
 
@@ -190,7 +190,7 @@ The agent uses the function name and docstring as the tool's description when de
 
 ### Do I need an AWS account to run this notebook?
 
-Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access and the model enabled in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess). At an AWS event, the account and credentials are provided, so no setup is required. No external API key is needed.
+Yes, if running self-paced. You need an AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access. Amazon Bedrock enables serverless models on first use; Anthropic models need a one-time use case submission per account (open an Anthropic model in the Amazon Bedrock model catalog and submit the use case details). At an AWS event, the account and credentials are provided, so no setup is required. No external API key is needed.
 
 ### Can I use a different LLM provider?
 
@@ -224,4 +224,4 @@ If you discover a potential security issue in this project, notify AWS/Amazon Se
 
 This library is licensed under the MIT-0 License. See the [LICENSE](../LICENSE) file for details.
 
-> Strands Agents 1.58 | Python 3.9+
+> Strands Agents 1.58 | Python 3.10+

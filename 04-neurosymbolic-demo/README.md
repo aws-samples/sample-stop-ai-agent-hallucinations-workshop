@@ -2,13 +2,13 @@
 
 # Demo 04, Neurosymbolic Guardrails
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Hooks](https://img.shields.io/badge/Pattern-Neurosymbolic_Hooks-purple.svg?style=flat)](https://strandsagents.com/docs/user-guide/sdk/agents/hooks-events/)
 
 > Business rules written in a prompt are suggestions the LLM can ignore. The same rules as deterministic Python in a Strands hook are enforcement it cannot bypass.
 
-![Two stacked bands over the same 10-guest rule. With the rule in the system prompt the agent calls book_hotel with 15 guests, the tool runs with nothing checking it and returns success, so the rule breaks silently. With the rule in a BeforeToolCall hook the same call is tested against guests greater than 10, event.cancel_tool fires, the tool never runs and the agent reads BLOCKED max 10 guests](../images/neurosymbolic-hooks.png)
+![Two bands over the same booking of 8 guests at Adobe Plaza Inn, whose largest room holds 6. Written in the system prompt, nothing checks the call, book_hotel runs and returns a success, so the rule breaks without a signal. Written in a BeforeToolCall hook, the hook compares the guests with the room capacity stored in Neo4j, event.cancel_tool stops book_hotel before it runs, and the agent reads BLOCKED: 8 guests exceed capacity of 6 as the tool result](../images/neurosymbolic-hooks.png)
 
 ---
 
@@ -50,19 +50,20 @@ Two rules query the knowledge graph, so the guardrail is grounded in real data, 
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - An AWS account with Amazon Bedrock access (used by default, no model config needed)
 - A Neo4j hotel graph. **Demo 01 builds it** (`01-graphrag-demo/build_graph.py`); inside Workshop Studio it is already restored from a dump. Copy demo 01's `.env` or set `NEO4J_PASSWORD` in a `.env` here (see `.env.example`).
 
 ### Run
 
 ```bash
-uv venv && uv pip install -r requirements.txt
+cd 04-neurosymbolic-demo
+pip install -r requirements.txt
+```
 
-# Open the notebook (VS Code, Kiro, or Jupyter)
-test_neurosymbolic_hooks.ipynb
+Open `test_neurosymbolic_hooks.ipynb` in VS Code, Kiro or Jupyter, or run the interactive REPL:
 
-# Or the interactive REPL
+```bash
 python chat.py
 ```
 
@@ -113,7 +114,7 @@ Yes. Any framework with lifecycle hooks or middleware can intercept a tool call 
 ## Navigation
 
 - **Previous:** [Demo 03, Multi-Agent Validation](../03-multiagent-demo/)
-- **Next:** [Demo 05, Agent Control Steering](../05-steering-demo/): instead of blocking, steer the agent to self-correct
+- **Next:** [Demo 05, Steering](../05-steering-demo/): instead of blocking, steer the agent to self-correct
 
 ---
 

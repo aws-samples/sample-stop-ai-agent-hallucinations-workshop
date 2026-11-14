@@ -33,7 +33,7 @@ def main():
     store = BookingStore()
     hotels = HotelCheck()
 
-    # Strands uses Amazon Bedrock (Claude Sonnet 4) by default — no model config.
+    # Strands uses Amazon Bedrock (Strands' default model) — no model config.
     # Same prompt as test_hooks_vs_control.ipynb: the agent tries the full party in one
     # call, so the steering rule (max 10 per room) is what splits it.
     agent = Agent(

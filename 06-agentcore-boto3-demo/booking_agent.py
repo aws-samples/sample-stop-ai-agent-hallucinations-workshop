@@ -17,11 +17,12 @@ from datetime import datetime
 
 import boto3
 from bedrock_agentcore import BedrockAgentCoreApp
-from mcp.client.streamable_http import streamablehttp_client
+from mcp_proxy_for_aws.client import aws_iam_streamablehttp_client
 from strands import Agent
 from strands.hooks.events import BeforeToolCallEvent
 from strands.hooks.registry import HookProvider, HookRegistry
 from strands.models import BedrockModel
+from strands.tools.executors import SequentialToolExecutor
 from strands.tools.mcp.mcp_client import MCPClient
 
 GATEWAY_URL = os.environ["GATEWAY_URL"]
@@ -104,9 +105,12 @@ SYSTEM_PROMPT = (
 
 
 # --- Build the agent ONCE at cold start (not per invocation) ---
-# The Gateway (authorizerType=NONE) is reached over MCP streamable-http; the
+# The Gateway uses AWS_IAM inbound auth: every MCP request is signed with SigV4 using
+# the runtime's execution role (Strands docs, "MCP transports" > AWS IAM). The
 # connection is opened here and kept open for the process lifetime.
-_mcp_client = MCPClient(lambda: streamablehttp_client(GATEWAY_URL))
+_mcp_client = MCPClient(lambda: aws_iam_streamablehttp_client(
+    endpoint=GATEWAY_URL, aws_region=_region, aws_service="bedrock-agentcore"
+))
 _mcp_client.start()
 _tools = _mcp_client.list_tools_sync()
 
@@ -115,6 +119,8 @@ _agent = Agent(
     tools=_tools,
     system_prompt=SYSTEM_PROMPT,
     hooks=[BookingGuardrailsHook()],
+    # pay -> confirm in one turn must run in order, so the guardrail sees the payment
+    tool_executor=SequentialToolExecutor(),
     context_manager="auto",
 )
 

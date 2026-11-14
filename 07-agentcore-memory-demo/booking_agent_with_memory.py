@@ -3,7 +3,7 @@
 """Hotel Booking Agent with Long-term Memory — AgentCore Runtime entry point.
 
 Connects to AgentCore Gateway via MCP (Model Context Protocol) to access tools.
-This version uses STM_AND_LTM (long-term memory across sessions via actor ID).
+This version uses AgentCore Memory with STM + LTM (long-term memory across sessions via actor ID).
 
 Compared to booking_agent.py, this version:
 - Imports AgentCore memory integration classes
@@ -19,14 +19,16 @@ import boto3
 from bedrock_agentcore import BedrockAgentCoreApp, RequestContext
 from bedrock_agentcore.memory.integrations.strands.config import AgentCoreMemoryConfig, RetrievalConfig
 from bedrock_agentcore.memory.integrations.strands.session_manager import AgentCoreMemorySessionManager
+from mcp_proxy_for_aws.client import aws_iam_streamablehttp_client
 from strands import Agent
 from strands.models import BedrockModel
+from strands.tools.executors import SequentialToolExecutor
 from strands.tools.mcp.mcp_client import MCPClient
 
 # --- Configuration from environment variables ---
 
 GATEWAY_URL = os.environ["GATEWAY_URL"]
-MEMORY_ID = os.environ["BEDROCK_AGENTCORE_MEMORY_ID"]  # Required for STM_AND_LTM
+MEMORY_ID = os.environ["BEDROCK_AGENTCORE_MEMORY_ID"]  # Memory resource created by the notebook
 _region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
 
 # HTTP header name for actor ID (normalized to lowercase by AgentCore)
@@ -127,48 +129,48 @@ SYSTEM_PROMPT = (
 
 app = BedrockAgentCoreApp()
 
-# Global agent instance (reused across invocations in the same container)
-_agent = None
+# One MCP client for the process. Passing it in tools=[...] lets Strands manage
+# the MCP session lifecycle (Strands docs, "MCP tools" > Managed Integration).
+# The Gateway uses AWS_IAM inbound auth, so requests are signed with SigV4 using the
+# runtime's execution role (Strands docs, "MCP transports" > AWS IAM).
+_mcp_client = MCPClient(lambda: aws_iam_streamablehttp_client(
+    endpoint=GATEWAY_URL, aws_region=_region, aws_service="bedrock-agentcore"
+))
+
+# AgentCoreMemorySessionManager is bound to one actor and one session, and only
+# one agent per session is supported, so keep one agent per (actor, session).
+_agents = {}
 
 def get_or_create_agent(actor_id: str, session_id: str):
-    """
-    Get existing agent or create new one with memory configuration.
-    The agent is cached globally to reuse MCP connection and memory session.
-    """
-    global _agent
+    """Get the agent for this actor and session, creating it on first use."""
+    key = (actor_id, session_id)
 
-    if _agent is None:
-        model = BedrockModel(region_name=_region)
-        hooks = [BookingGuardrailsHook()]
-        mcp_client = MCPClient(url=GATEWAY_URL)
-
-        # List tools from Gateway
-        with mcp_client:
-            tools = mcp_client.list_tools_sync()
-
+    if key not in _agents:
         # Configure memory with user facts and preferences
         memory_config = AgentCoreMemoryConfig(
             memory_id=MEMORY_ID,
             session_id=session_id,
             actor_id=actor_id,
             retrieval_config={
-                f"/users/{actor_id}/facts": RetrievalConfig(top_k=3, relevance_score=0.5),
-                f"/users/{actor_id}/preferences": RetrievalConfig(top_k=3, relevance_score=0.5)
+                f"/users/{actor_id}/facts": RetrievalConfig(top_k=3, relevance_score=0.3),
+                f"/users/{actor_id}/preferences": RetrievalConfig(top_k=3, relevance_score=0.3)
             }
         )
         session_manager = AgentCoreMemorySessionManager(memory_config, _region)
         app.logger.info(f"Memory enabled for actor={actor_id}, session={session_id}")
 
-        _agent = Agent(
-            model=model,
-            tools=tools,
+        _agents[key] = Agent(
+            model=BedrockModel(region_name=_region),
+            tools=[_mcp_client],
             system_prompt=SYSTEM_PROMPT,
-            hooks=hooks,
+            hooks=[BookingGuardrailsHook()],
+            # pay -> confirm in one turn must run in order, so the guardrail sees the payment
+            tool_executor=SequentialToolExecutor(),
             session_manager=session_manager,
             context_manager="auto"
         )
 
-    return _agent
+    return _agents[key]
 
 
 @app.entrypoint
@@ -180,13 +182,14 @@ def invoke(payload, context: RequestContext = None):
     if not MEMORY_ID:
         return {"error": "Memory not configured. Set BEDROCK_AGENTCORE_MEMORY_ID environment variable."}
 
-    # Extract actor ID from custom header (normalized to lowercase)
+    # Extract actor ID from the custom header (compared case-insensitively)
+    # The runtime forwards the header only if it is in the runtime's requestHeaderAllowlist
     actor_id = 'default-user'
-    if context and hasattr(context, 'request_headers') and context.request_headers:
-        actor_id = context.request_headers.get(CUSTOM_HEADER_NAME, 'default-user')
-        app.logger.info(f"Actor ID from header '{CUSTOM_HEADER_NAME}': {actor_id}")
-    else:
-        app.logger.warning("No request headers found in context")
+    request_headers = getattr(context, 'request_headers', None) or {}
+    for key, value in request_headers.items():
+        if key.lower() == CUSTOM_HEADER_NAME:
+            actor_id = value
+    app.logger.info(f"Actor ID from header '{CUSTOM_HEADER_NAME}': {actor_id}")
 
     session_id = context.session_id if context and hasattr(context, 'session_id') else None
     app.logger.info(f"Using actor_id='{actor_id}', session_id='{session_id}'")

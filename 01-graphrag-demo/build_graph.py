@@ -38,7 +38,7 @@ load_dotenv()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
+NEO4J_PASSWORD = os.environ["NEO4J_PASSWORD"]
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 DATA_DIR = "data"
 FULL = os.getenv("BUILD_FULL") == "1"   # lite (30 docs) by default; set True / BUILD_FULL=1 for all 300

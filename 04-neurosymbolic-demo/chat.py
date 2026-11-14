@@ -22,6 +22,7 @@ os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 
 from dotenv import load_dotenv
 from strands import Agent
+from strands.tools.executors import SequentialToolExecutor
 
 from neurosymbolic_tools import BookingStore, HotelGraph, NeurosymbolicHook
 
@@ -43,6 +44,8 @@ def main():
         system_prompt=SYSTEM_PROMPT,
         tools=[store.book_hotel, store.process_payment, store.confirm_booking],
         hooks=[hook],
+        # Pay-then-confirm in one turn must run in order, so the hook sees the payment
+        tool_executor=SequentialToolExecutor(),
     )
 
     print("Book hotels — the hook enforces the rules (Ctrl-C to exit).")

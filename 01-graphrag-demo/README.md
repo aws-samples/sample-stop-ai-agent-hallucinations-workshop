@@ -2,14 +2,14 @@
 
 # RAG vs Graph-RAG: Reducing Agent Hallucinations
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Neo4j](https://img.shields.io/badge/Neo4j-Graph--RAG-4581C3.svg?style=flat&logo=neo4j)](https://neo4j.com)
 [![FAISS](https://img.shields.io/badge/FAISS-Vector_Search-blue.svg?style=flat)](https://github.com/facebookresearch/faiss)
 
 > Vector-only RAG makes AI agents fabricate counts and averages, and answer even when nothing matches. This demo compares standard RAG ([FAISS](https://github.com/facebookresearch/faiss), a vector similarity index) against Graph-RAG (a read-only [Neo4j](https://neo4j.com) knowledge graph) over the same hotel FAQ documents, so you can see which failure mode each approach produces on the same question.
 
-![Two stacked bands over the same question, how many hotels have a pool. Vector RAG runs a cosine search over chunks, sees the top 3 of 300 hotels and estimates a number, so the total is a guess. Graph-RAG runs Cypher over every hotel, counts in the database and returns the exact count or no results, so the aggregation covers all the data and empty means empty](../images/rag-vs-graphrag.png)
+![Two stacked bands over the same question, how many hotels have a pool. Vector RAG runs a cosine search over chunks, sees the top 3 of about 300 hotels and estimates a number, so the total is a guess. Graph-RAG runs Cypher over every hotel, counts in the database and returns the exact count or no results, so the aggregation covers all the data and empty means empty](../images/rag-vs-graphrag.png)
 
 ## What This Demo Shows
 
@@ -78,7 +78,7 @@ Both the FAISS index and the graph's chunk vectors use the same Amazon Bedrock e
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access in `us-east-1` (Claude + Nova 2 embeddings). **No external API key is needed**, Amazon Bedrock is the default provider.
 - A Neo4j instance with the **APOC** plugin enabled.
 
@@ -86,7 +86,7 @@ Both the FAISS index and the graph's chunk vectors use the same Amazon Bedrock e
 
 ```bash
 cd 01-graphrag-demo
-uv venv && uv pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment Variables
@@ -109,29 +109,30 @@ AWS credentials come from `aws configure` or an AWS profile, no key goes in `.en
 Running on your own? Build both stores once (uses Amazon Bedrock, so set your AWS profile/region in the shell first):
 
 ```bash
+# Extract the hotel FAQ documents (only hotel-faqs.zip is in the repo; build_graph.py reads data/)
+unzip -o hotel-faqs.zip -d data
+
 # Neo4j knowledge graph with the fixed schema (default: 30 docs / "lite", ~10–15 min)
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python build_graph.py
 
-# FAISS vector index for the standard-RAG side (fast)
+# FAISS vector index for the standard-RAG side (fast, default: all 300 docs)
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python load_vector_data.py
 ```
 
-Both scripts default to the **lite** base (30 documents) for fast iteration. For the full 300-document base, set `BUILD_FULL=1` (the full graph build takes roughly 2 hours because each document requires an LLM extraction call):
+`build_graph.py` defaults to the **lite** base (30 documents) for fast iteration; set `BUILD_FULL=1` for the full 300-document base (roughly 2 hours, because each document requires an LLM extraction call). `load_vector_data.py` defaults to the **full** 300 documents, to match the graph restored in Workshop Studio; set `BUILD_LITE=1` for a quick 30-document index:
 
 ```bash
 BUILD_FULL=1 python build_graph.py
-BUILD_FULL=1 python load_vector_data.py
+BUILD_LITE=1 python load_vector_data.py
 ```
 
 > The comparison questions in the notebook use **Las Vegas (5 hotels)** and ask how many hotels the answer is based on. The contrast is clearest on the **full 300-document base**, where many cities have more hotels than FAISS returns as top-k.
 
 ### 4. Run the Demo
 
-```bash
-# Notebook (recommended), open in VS Code, Kiro, or Jupyter
-test_graphrag.ipynb
+Open `test_graphrag.ipynb` in VS Code, Kiro or Jupyter (recommended), or run the interactive REPL (ask one question, both agents answer):
 
-# Or the interactive REPL, ask one question, both agents answer
+```bash
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 ```
 
@@ -143,10 +144,11 @@ In `chat.py` each agent is created once and reused, so it keeps the conversation
 |------|------------|
 | `test_graphrag.ipynb` | The walkthrough: two agents (one tool each), the same question to both, then the fixed-schema check. Tools are defined inline to teach them. |
 | `build_graph.py` | Builds the Neo4j graph with `SimpleKGPipeline` and a **fixed schema**. Schema and Amazon Bedrock wrapper classes live inline. Lite (30) by default, `BUILD_FULL=1` for 300. |
-| `load_vector_data.py` | Builds the FAISS index for the standard-RAG side with Bedrock Nova 2 embeddings. Lite by default, `BUILD_FULL=1` for 300. |
+| `load_vector_data.py` | Builds the FAISS index for the standard-RAG side with Bedrock Nova 2 embeddings. Full (300) by default, `BUILD_LITE=1` for 30. Extracts `hotel-faqs.zip` into `data/` if `data/` is empty. |
 | `hotel_tools.py` | `VectorFAQs.search_faqs` (FAISS) and `HotelGraph.query_hotels` (read-only Cypher), copied from the notebook so `chat.py` can import them. |
 | `chat.py` | REPL that sends one question to both agents side by side. |
-| `data/` | The hotel FAQ `.txt` documents. |
+| `hotel-faqs.zip` | The 300 hotel FAQ `.txt` documents (the only copy tracked in git). |
+| `data/` | Not tracked; created by `unzip -o hotel-faqs.zip -d data` (or by `load_vector_data.py`). `build_graph.py` reads the `.txt` files from here. |
 
 ## Technologies
 
@@ -164,7 +166,7 @@ In `chat.py` each agent is created once and reused, so it keeps the conversation
 
 **Graph build is slow:** Each document is one LLM extraction call (~20–30s). The lite base (30 docs) takes ~10–15 min; the full base (300 docs) ~2 hours. Build once.
 
-**Bedrock access denied:** Ensure Claude and Nova 2 embeddings are enabled in `us-east-1` in the [Bedrock Model Access console](https://console.aws.amazon.com/bedrock/home#/modelaccess), and that your AWS profile/region are set.
+**Bedrock access denied:** Run in `us-east-1` with your AWS profile set. Amazon Bedrock enables serverless models on first use; Anthropic models need a one-time use case submission per account (open an Anthropic model in the Amazon Bedrock model catalog and submit the use case details).
 
 The same Graph-RAG pattern (knowledge graph + Text2Cypher) can be implemented with any framework that supports custom tool calling.
 

@@ -2,13 +2,13 @@
 
 # Agent Steering: Self-Correct Instead of Hard-Block
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58.0-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![Amazon Bedrock](https://img.shields.io/badge/Amazon-Bedrock-FF9900.svg?style=flat&logo=amazon-aws)](https://aws.amazon.com/bedrock/)
 
 **A guardrail can react to a bad request in two ways: say *no* (hard block, the task fails) or say *here's how* (steering, the agent fixes the request and finishes). This demo contrasts a blocking lifecycle hook with native Strands steering, using one real rule: a room holds at most 10 guests. Ask to book 15 and watch each approach.**
 
-![Two stacked bands over the same request to book 15 guests where the hotel allows 10 per room. In the hard block band the hook sees 15 over 10, the tool is canceled with no guidance and the booking never happens, so the rule holds but the task dies. In the steering band a guide tells the agent to split into 10 plus 5, the agent books two rooms and all 15 guests are placed, so the rule holds and the task completes](../images/steering-flow.png)
+![Two stacked bands over the same request to book 15 guests where the hotel allows 10 per room. In the hard block band the hook sees 15 is over 10, the tool is canceled with no guidance, and the booking never happens, so the rule holds but the task does not complete. In the steering band a guide tells the agent to split into 10 plus 5, the agent books two rooms, all 15 guests are placed, and the rule holds while the task completes](../images/steering-flow.png)
 
 ## The Problem
 
@@ -61,7 +61,7 @@ RuleSteering(rules)                         # same native steering, cap from con
 - **Blocking hook** (`BlockOversizeRoomHook`), a `BeforeToolCallEvent` hook that `cancel_tool`s the oversize call, shown only as the contrast.
 - **Booking store** (`BookingStore`), reservations go to a local JSON file through an `@tool` class method (`book_hotel` has a `guests` parameter so steering can read it). Swappable to Amazon DynamoDB by reimplementing `_load`/`_save`; the agent code is unchanged. Bookings never live in `agent.state`.
 - **Neo4j** (`HotelCheck.hotel_exists`), **read-only**: confirms a hotel exists before booking. Neo4j never writes.
-- **Model**, Amazon Bedrock (Claude Sonnet 4) by default.
+- **Model**, Amazon Bedrock (Strands' default model).
 
 ## Files
 
@@ -78,13 +78,10 @@ RuleSteering(rules)                         # same native steering, cap from con
 
 ```bash
 cd 05-steering-demo
-uv venv && uv pip install -r requirements.txt
+pip install -r requirements.txt
 cp .env.example .env   # set NEO4J_PASSWORD
 
-# Notebook
-AWS_PROFILE=<profile> AWS_REGION=us-east-1 jupyter notebook test_hooks_vs_control.ipynb
-
-# Or the REPL
+# Open test_hooks_vs_control.ipynb in VS Code, Kiro or Jupyter, or run the REPL:
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 ```
 

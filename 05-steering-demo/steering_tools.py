@@ -45,7 +45,7 @@ class HotelCheck:
             uri or os.getenv("NEO4J_URI", "neo4j://127.0.0.1:7687"),
             auth=(
                 user or os.getenv("NEO4J_USER", "neo4j"),
-                password or os.getenv("NEO4J_PASSWORD", "password"),
+                password or os.environ["NEO4J_PASSWORD"],
             ),
         )
 

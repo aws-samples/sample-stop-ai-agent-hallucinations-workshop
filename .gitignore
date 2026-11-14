@@ -44,6 +44,7 @@ Thumbs.db
 # Credentials
 .env
 .env.*
+!.env.example
 
 # Neo4j (local database files)
 neo4j/

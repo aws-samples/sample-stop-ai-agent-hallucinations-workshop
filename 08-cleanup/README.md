@@ -1,3 +1,5 @@
+[< Back to Main README](../README.md)
+
 # Module 8: Cleanup
 
 Safely delete all resources created in Modules 6 and 7.
@@ -18,12 +20,11 @@ Running `cleanup.ipynb` removes:
 | ECR Repositories | 2 | Container images for both agents |
 | CodeBuild Projects | 2 | Build projects from starter toolkit |
 
-**Cost after cleanup:** $0 (no ongoing charges)
+No ongoing charges after cleanup.
 
 ## What Does NOT Get Deleted
 
-- **Neo4j infrastructure**: Code Editor EC2 or Central Neo4j ECS stack from Module 1
-  - Delete via AWS Console → CloudFormation → Delete Stack
+- **Neo4j**: your own Neo4j instance from Module 1 (Docker, AuraDB or Neo4j Desktop). At AWS events it is part of the event stack and is removed with it
 - **S3 buckets**: Workshop Studio assets bucket
 - **CloudWatch Logs**: log groups remain until manually deleted
 
@@ -53,3 +54,9 @@ Run this notebook:
 - ✅ Before re-running Module 6 from scratch
 - ❌ NOT while an agent is actively being used
 - ❌ NOT if you want to keep the production deployment running
+
+---
+
+## Navigation
+
+- **Previous:** [Module 7: AgentCore Memory](../07-agentcore-memory-demo/)

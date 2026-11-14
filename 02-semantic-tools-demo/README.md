@@ -2,13 +2,13 @@
 
 # Semantic Tool Selection: Fewer Tokens, Fewer Wrong Picks
 
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://python.org)
 [![Strands Agents](https://img.shields.io/badge/Strands_Agents-1.58-00B4D8.svg?style=flat)](https://strandsagents.com)
 [![FAISS](https://img.shields.io/badge/FAISS-Semantic_Filtering-blue.svg?style=flat)](https://github.com/facebookresearch/faiss)
 
 > A small model with a big, overlapping toolbox gets confused: it picks the wrong tool, or none, and pays for every tool description on every call. This demo gives the agent a ~40-tool travel pool and a Strands hook that trims it to the FAISS top-3 most relevant tools per request, cutting tokens sharply and reducing the chance of a wrong pick.
 
-![Two stacked bands over one question against a pool of 40 overlapping tools. Sending every tool puts 40 descriptions in the prompt, similar names compete and the call costs about 57k input tokens. A hook that trims to the top 3 embeds the question, searches FAISS, leaves 3 tools in the registry and costs about 15k input tokens, which is 72 percent fewer](../images/semantic-filtering.png)
+![Two stacked bands over one question against a pool of 40 overlapping tools. Sending every tool puts 40 descriptions in the prompt, similar names compete and every call pays for all of them. A hook that trims to the top 3 embeds the question, searches FAISS and leaves 3 tools in the registry, which uses about 76 percent fewer input tokens with 10 out of 10 answers correct both ways](../images/semantic-filtering.png)
 
 ## The Problem
 
@@ -62,13 +62,13 @@ The pool mixes genuinely-working tools with realistic stand-ins:
 
 ## Memory Across Sessions
 
-The last part of the notebook (and `chat.py`) adds a **session manager**: `SnapshotSessionManager` + `LocalFileStorage` persists the conversation to `./sessions/`, so an agent created later with the same `session_id` resumes where it left off, the same semantic hook keeps trimming tools per turn.
+The last part of the notebook (and `chat.py`) adds a **session manager**: `FileSessionManager` persists the conversation to `./sessions/`, so an agent created later with the same `session_id` resumes where it left off, the same semantic hook keeps trimming tools per turn.
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - An AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/) access (Claude Haiku + Nova 2 embeddings). **No external API key is needed.**
 - A running Neo4j with the hotel graph (built in [Demo 01](../01-graphrag-demo/); inside Workshop Studio it is restored from a dump). The three Neo4j hotel tools need it; the rest of the pool runs without it.
 
@@ -76,17 +76,15 @@ The last part of the notebook (and `chat.py`) adds a **session manager**: `Snaps
 
 ```bash
 cd 02-semantic-tools-demo
-uv venv && uv pip install -r requirements.txt
+pip install -r requirements.txt
 cp ../01-graphrag-demo/.env .env   # or set NEO4J_* yourself
 ```
 
 ### Run
 
-```bash
-# Notebook (recommended), open in VS Code, Kiro, or Jupyter
-token_efficiency_analysis.ipynb
+Open `token_efficiency_analysis.ipynb` in VS Code, Kiro or Jupyter (recommended), or run the interactive REPL (persistent memory across restarts):
 
-# Or the interactive REPL (persistent memory across restarts)
+```bash
 AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 ```
 
@@ -97,7 +95,7 @@ AWS_PROFILE=<profile> AWS_REGION=us-east-1 python chat.py
 | `token_efficiency_analysis.ipynb` | The walkthrough: the big pool + small model (Part 1), the `SemanticToolHook` harness (Part 2), accuracy & tokens all-40 vs top-3 (Part 3), session memory (Part 4). |
 | `semantic_tools.py` | `ALL_TOOLS` (the ~40-tool pool: real hotel/weather/booking + stand-ins) and `SemanticToolHook`, copied so `chat.py` can import them. |
 | `booking_store.py` | JSON booking store (`book_hotel`, `get_booking`), swappable to DynamoDB. |
-| `chat.py` | REPL using the hook + `SnapshotSessionManager` for persistent memory. |
+| `chat.py` | REPL using the hook + `FileSessionManager` for persistent memory. |
 
 ## How It Works
 
@@ -129,11 +127,11 @@ agent("How much does a room cost at Cliffside Resort?")
 
 ### How much does semantic tool selection reduce token usage?
 
-A lot, the demo measures it rather than asserting a figure. Instead of sending ~40 tool descriptions on every query, the hook sends the top 3. In the notebook's run (27-Oct-2026: 69,991 → 16,193 input tokens over 10 questions, both 10/10 correct) that is roughly a 76% reduction, and it repeats on every turn. The exact number depends on how many tools you have and how long their docstrings are; the notebook prints the figure for your own run.
+A lot, the demo measures it rather than asserting a figure. Instead of sending ~40 tool descriptions on every query, the hook sends the top 3. In the notebook's run (27-Oct-2026, 10 questions, 10/10 correct both ways) that is about 76% fewer input tokens, and it repeats on every turn. The exact number depends on how many tools you have and how long their docstrings are; the notebook prints the figure for your own run.
 
 ### Does filtering tools break conversation memory?
 
-No. The hook mutates the agent's `tool_registry` in place on a long-lived agent; `agent.messages` is untouched. For persistence across restarts, `chat.py` adds `SnapshotSessionManager`.
+No. The hook mutates the agent's `tool_registry` in place on a long-lived agent; `agent.messages` is untouched. For persistence across restarts, `chat.py` adds `FileSessionManager`.
 
 ### Can I use this with other agent frameworks?
 
